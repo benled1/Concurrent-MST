@@ -16,7 +16,7 @@ SRCS += $(wildcard $(UTILS_DIR)/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
 # Executable name
-EXEC = main
+EXEC = mst
 
 # Main target
 all: $(EXEC)

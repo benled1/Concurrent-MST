@@ -22,10 +22,14 @@ using namespace std;
 
 struct Edge;
 
-class Vertex {
+struct Vertex {
 public:
     int index;
     vector<Edge> edges;
+    friend ostream& operator<<(ostream& os, const Vertex& v) {
+        os << "Vertex index - " << v.index << ", Number of edges - " << v.edges.size();
+        return os;
+    }
 };
 
 struct Edge {
@@ -50,7 +54,6 @@ public:
         string line;
         while (getline(file, line)) {
             istringstream iss(line);
-            Edge edge;
             int firstIndex, secondIndex, weight;
             char comma;
             if (iss >> firstIndex >> comma >> secondIndex >> comma >> weight) {
@@ -58,9 +61,10 @@ public:
                 Vertex* vertexSecond = findOrCreateVertex(secondIndex);
                 // Only add an edge if that pairing doesnt already have one
                 // This is to convert directed graphs to undirected
+                cout << &vertexFirst << " : " << &vertexSecond << endl;
                 if(!edgeExists(*vertexFirst, *vertexSecond)){
                     edges.push_back({vertexFirst, vertexSecond, weight});
-                    addEdgeToVertex(vertexFirst, vertexSecond, edge);
+                    addEdgeToVertex(vertexFirst, vertexSecond, edges.back());
                 }
             } else {
                 cerr << "Error parsing line: " << line << endl;
@@ -73,14 +77,15 @@ private:
 
     // This is to see if we need to make a new vertex or not when created edges
     Vertex* findOrCreateVertex(int index){
-        for(Vertex& v : vertices){
-            if(v.index == index){
-                return &v;
+        if(!vertices.empty()){
+            for(const Vertex& v : vertices){
+                if(v.index == index){
+                    return &const_cast<Vertex&>(v);
+                }
             }
         }
         // Need to make a new vertex
-        Vertex newVertex = {index, {}};
-        vertices.push_back(newVertex);
+        vertices.push_back({index, {}});
         return &vertices.back();
     }
 
@@ -92,13 +97,17 @@ private:
 
     // Check for duplicates
     bool edgeExists(Vertex& v1, Vertex& v2){
-        // We only need to check 1 vertex as it will have to hold this pairing
-        for (Edge& edge : v1.edges) {
+        cout << v1 << " : " << v2 << endl;
+        if(v1.edges.empty()){
+            return true;
+        }
+        for (const Edge& edge : v1.edges) {
             if ((edge.first == &v1 && edge.second == &v2) ||
                 (edge.first == &v2 && edge.second == &v1)) {
                 return true;
             }
         }
+        cout << "Set Free" << endl;
         return false;
     }
 };
