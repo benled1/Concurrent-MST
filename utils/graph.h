@@ -2,8 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <set>
 #include <map>
-#include <unordered_set>
 #include <algorithm>
 
 /*
@@ -22,9 +22,13 @@ using namespace std;
 
 struct Edge {
 public:
-    int first;     // Pointer to the destination vertex
-    int second;   // Pointer to the source vertex
+    int first;  // First index
+    int second; // Second index
     int weight;
+
+    bool operator<(const Edge& other) const {
+        return weight < other.weight;
+    }
 };
 
 class Graph {
@@ -57,7 +61,27 @@ public:
 
         file.close();
     }
-private:
+
+    bool hasDuplicateEdges() {
+        set<Edge> edgeSet;
+
+        for (const auto& edge : edges) {
+            Edge sortedEdge = {min(edge.first, edge.second), max(edge.first, edge.second), edge.weight};
+
+            // Check if the edge already exists in the set
+            if (edgeSet.find(sortedEdge) != edgeSet.end()) {
+                // Duplicate found
+                return true;
+            }
+
+            // If not found, insert it into the set
+            edgeSet.insert(sortedEdge);
+        }
+
+        // No duplicates found
+        return false;
+    }
+
     bool edgeExists(int v1, int v2){
         if(edges.empty()){
             return false;
@@ -69,4 +93,5 @@ private:
         }
         return false;
     }
+
 };
