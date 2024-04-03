@@ -33,17 +33,18 @@ void primMST(Graph* inputGraph) {
         Edge shortest_edge = edge_pq.top();
         edge_pq.pop();
 
-        // check which of the vertices in the shorted edge we didn't just come from
+        // pick the shortest edge from the priority queue to include in the mst. make sure that 
         int target;
         if (included_vertices[shortest_edge.first]) {
-            target = shortest_edge.first;
-        }else{
             target = shortest_edge.second;
+        }else{
+            target = shortest_edge.first;
         }
 
 
         // if the target vertex has NOT already been visited/included in MST 
         if(!included_vertices[target]) {
+            cout << "Entered the result push" << endl;
             included_vertices[target] = true;
             result.push_back(shortest_edge);
             num_included_edges++;
@@ -60,7 +61,7 @@ void primMST(Graph* inputGraph) {
 
 
     }
-    cout << result[0].first << endl;
+    // cout << result[0].first << endl;
     //Print the MST
     for (Edge& edge: result) {
         cout << edge.first << " - " << edge.second << " : " << edge.weight << endl;
