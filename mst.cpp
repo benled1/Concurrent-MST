@@ -5,7 +5,6 @@ using namespace std;
 
 void primMST(Graph* inputGraph) {
     // priority queue of all the edges in the graph
-    cout << "Running" << endl;
     priority_queue<Edge> edge_pq;
 
     // random starting vertex
@@ -44,7 +43,6 @@ void primMST(Graph* inputGraph) {
 
         // if the target vertex has NOT already been visited/included in MST 
         if(!included_vertices[target]) {
-            cout << "Entered the result push" << endl;
             included_vertices[target] = true;
             result.push_back(shortest_edge);
             num_included_edges++;
@@ -61,7 +59,8 @@ void primMST(Graph* inputGraph) {
 
 
     }
-    // cout << result[0].first << endl;
+
+    cout << "MST:" << endl;
     //Print the MST
     for (Edge& edge: result) {
         cout << edge.first << " - " << edge.second << " : " << edge.weight << endl;
@@ -80,7 +79,4 @@ int main(int argc, char *argv[]) {
 
     primMST(&inputGraph);
     
-    // for (const Edge& edge : mst) {
-    //     cout << "Node " << edge.first << " to Node " << edge.second << ", Weight: " << edge.weight << endl;
-    // }
 }
