@@ -3,21 +3,22 @@
 
 using namespace std;
 
-vector<Edge> primMST(Graph inputGraph) {
+void primMST(Graph* inputGraph) {
     // priority queue of all the edges in the graph
+    cout << "Running" << endl;
     priority_queue<Edge> edge_pq;
 
     // random starting vertex
     int starting_vertex = 0;
 
     // keep track of vertexes in MST
-    vector<bool> included_vertices(inputGraph.V, false);
+    vector<bool> included_vertices(inputGraph->V, false);
 
     // num of edges included in the MST
     int num_included_edges = 0;
 
     // add all the edges that are connected to the starting vertex to the pq
-    for (Edge& edge : inputGraph.edges) {
+    for (Edge& edge : inputGraph->edges) {
         if (edge.first == starting_vertex || edge.second == starting_vertex) {
             edge_pq.push(edge);
         }
@@ -28,7 +29,7 @@ vector<Edge> primMST(Graph inputGraph) {
     // Vector to store the resultant MST
     vector<Edge> result;
 
-    while (!edge_pq.empty() && num_included_edges < inputGraph.V-1) {
+    while (!edge_pq.empty() && num_included_edges < inputGraph->V-1) {
         Edge shortest_edge = edge_pq.top();
         edge_pq.pop();
 
@@ -48,7 +49,7 @@ vector<Edge> primMST(Graph inputGraph) {
             num_included_edges++;
 
             // add all edges of the newly included vertex to the priority queue
-            for (Edge& edge: inputGraph.edges) {
+            for (Edge& edge: inputGraph->edges) {
                 if (edge.first == target || edge.second == target) {
                     if(!included_vertices[edge.first] || !included_vertices[edge.second]) {
                         edge_pq.push(edge);
@@ -59,7 +60,7 @@ vector<Edge> primMST(Graph inputGraph) {
 
 
     }
-
+    cout << result[0].first << endl;
     //Print the MST
     for (Edge& edge: result) {
         cout << edge.first << " - " << edge.second << " : " << edge.weight << endl;
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
     cout << inputGraph.V << endl;
     cout << inputGraph.hasDuplicateEdges() << endl;
 
-    vector<Edge> mst = primMST(inputGraph);
+    primMST(&inputGraph);
     
     // for (const Edge& edge : mst) {
     //     cout << "Node " << edge.first << " to Node " << edge.second << ", Weight: " << edge.weight << endl;
