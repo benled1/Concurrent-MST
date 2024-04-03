@@ -27,7 +27,7 @@ public:
     int weight;
 
     bool operator<(const Edge& other) const {
-        return weight < other.weight;
+        return weight > other.weight;
     }
 };
 
@@ -36,7 +36,8 @@ public:
     int V; // No. of vertices in graph
     vector<Edge> edges; // Edges in the graph
     // Create a graph from an input file
-    Graph(string filename){
+    Graph(string filename, int num_vert){
+        V = num_vert;
         ifstream file(filename);
         if (!file.is_open()) {
             cerr << "Error opening file: " << filename << endl;
