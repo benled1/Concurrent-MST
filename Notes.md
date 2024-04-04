@@ -15,20 +15,41 @@
 
 Below is some psuedo code
 ```
-subgraphs_set = ((0), (1), ..., (n)) // a set of sets of vertices
-mst = []
-in parallel:
-    while(len(subgraphs_set) > 1) // while the subgraphs are not fully connected
-        min_edges = []
-        for each subgraph in partition(subgraphs_set):
-            min_leaving_edge = find_min_leaving_edge(subgraph) // get the min leaving edge from the subgraph
-            min_edges.append(min_leaving_edge)
-        
-        sort(min_edges) // want to pull the lowest weight min edge first
+if process 0:
+    subgraphs_set = ((0), (1), ..., (n)) // a set of sets of vertices
+    mst = []
 
+    split_edge_list_by_process() // divide the edge list into only edges that touch the vertices for each process
+
+broadcast(subgraphs_set)
+
+in parallel:
+    min_edges = []
+    for each subgraph in partition(subgraphs_set):
+        min_leaving_edge = find_min_leaving_edge(subgraph) // get the min leaving edge from the subgraph
+        min_edges.append(min_leaving_edge)
+    send(min_edges, process0) // send the min_edges from each process to process 0
+
+if process 0:
+    rcv(all_min_edges)
+    min_edges = combine(all_min_edges)
+    sort(min_edges) // want to pull the lowest weight min edge first
+
+while len(subgraphs_set) > 1:
+    if process 0:
         for each min_edge in min_edges:
             if min_edge connects two disjoint subgraphs:
                 subgraphs_set.merge_subgraphs()
                 mst.append(min_edge)
+                min_edge.pop() //remove the one we just processed.
+        broadcast(subgraphs_set)
+    in parallel: // find the min outgoing edges on the new subgraphs_set
+        subgraphs_set = rcv(subgraphs_set) // update the subgraphs_set based on process0 broadcast
+        min_edges = []
+        for each subgraph in partition(subgraphs_set):
+            min_leaving_edge = find_min_leaving_edge(subgraph) // get the min leaving edge from the subgraph
+            min_edges.append(min_leaving_edge)
+        send(min_edges, process0) // send the min_edges from each process to process 0
+
 return mst
 ```
