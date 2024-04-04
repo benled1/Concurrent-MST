@@ -1,10 +1,14 @@
 #include "utils/graph.h"
-#include <mpi.h>
 using namespace std;
 
 // implement a disjoint set data structure here
 // https://www.geeksforgeeks.org/disjoint-set-data-structures/
 
+//TODO:
+    // implement a DisjointSet look at the link above
+    // implement the findMinOutGoingEdge
+    // implement the full algorithm but in a serial fashion like written below
+    // add the distributed portions by partitioning the edge set and adding broadcasting
 
 class DisjointSet {
 public:
@@ -13,7 +17,8 @@ public:
     void Merge(int vertex1, int vertex2) {}
     int size();
     Graph index();
-
+private:
+    int Find(int vertex) {}
 };
 
 Edge findMinOutGoingEdge(Graph* subgraph) {
@@ -33,9 +38,7 @@ void distributedPrims(Graph* inputGraph, int process_num, int world_size) {
     // if there is a minimum outgoing edge, push it onto the min_edges vector
     for(int i; i<subgraphs_set.size();i++) {
         Edge min_leaving_edge = findMinOutGoingEdge(&subgraphs_set.index());
-        if (min_leaving_edge) {
-            min_edges.push_back(min_leaving_edge);
-        }
+        min_edges.push_back(min_leaving_edge);
     }
 
     // sort the min_edges vector which now has a min_edge for every subgraph in the subgraph_set
@@ -65,11 +68,11 @@ void distributedPrims(Graph* inputGraph, int process_num, int world_size) {
         }
         // repeat above until we find no min outgoing edges due to the subgraphs_set only having one subgraph.
     }
-    
+
     return mst;
 }
 
 
 int main(int argc, char *argv[]){
-
+    distributedPrims();
 }

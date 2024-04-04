@@ -1,3 +1,7 @@
+
+
+
+
 # Ideas for parallelizing prims
 
 # notes on the distributed version in 5.3 on the stanford paper
