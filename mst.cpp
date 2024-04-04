@@ -31,7 +31,6 @@ void primMST(Graph* inputGraph) {
     while (!edge_pq.empty() && num_included_edges < inputGraph->V-1) {
         Edge shortest_edge = edge_pq.top();
         edge_pq.pop();
-
         // pick the shortest edge from the priority queue to include in the mst. make sure that 
         int target;
         if (included_vertices[shortest_edge.first]) {
@@ -40,6 +39,9 @@ void primMST(Graph* inputGraph) {
             target = shortest_edge.first;
         }
 
+        // if new target not in process allocation, 
+
+        // continue
 
         // if the target vertex has NOT already been visited/included in MST 
         if(!included_vertices[target]) {
@@ -56,8 +58,6 @@ void primMST(Graph* inputGraph) {
                 }
             }
         }
-
-
     }
 
     cout << "MST:" << endl;
