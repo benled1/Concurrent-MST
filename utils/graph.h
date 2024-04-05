@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -5,6 +6,7 @@
 #include <set>
 #include <map>
 #include <algorithm>   
+#include <random>
 
 /*
 Edges
