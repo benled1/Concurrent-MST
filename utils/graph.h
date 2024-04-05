@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <map>
-#include <algorithm>
+#include <algorithm>   
 
 /*
 Edges
@@ -36,14 +36,16 @@ public:
     int V; // No. of vertices in graph
     vector<Edge> edges; // Edges in the graph
     // Create a graph from an input file
-    Graph(string filename, int num_vert){
-        V = num_vert;
+    Graph(string filename){
         ifstream file(filename);
         if (!file.is_open()) {
             cerr << "Error opening file: " << filename << endl;
         }
 
         string line;
+        int maxIndex = 0;
+        int minIndex = 1;
+        bool first = true;
         while (getline(file, line)) {
             istringstream iss(line);
             int firstIndex, secondIndex, weight;
@@ -55,12 +57,22 @@ public:
                     edges.push_back({firstIndex, secondIndex, weight});
                     // addEdgeToVertex(vertexFirst, vertexSecond, edges.back());
                 }
+                // Update max and min
+                if(first == true){
+                    maxIndex = max({firstIndex, secondIndex});
+                    minIndex = min({firstIndex, secondIndex});
+                    first = false;
+                }
+                else{
+                    maxIndex = max({maxIndex, firstIndex, secondIndex});
+                    minIndex = min({minIndex, firstIndex, secondIndex});
+                }
             } else {
                 cerr << "Error parsing line: " << line << endl;
             }
         }
-
         file.close();
+        V = maxIndex - minIndex + 1;
     }
 
     bool hasDuplicateEdges() {

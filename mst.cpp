@@ -69,7 +69,7 @@ void primMST(Graph* inputGraph) {
 }
 
 int main(int argc, char *argv[]) {
-    Graph inputGraph = Graph("inputGraphs/testData.csv", 9);
+    Graph inputGraph = Graph("inputGraphs/testData.csv");
     cout << "List of edges:" << endl;
     for (const Edge& edge : inputGraph.edges) {
         cout << "Node " << edge.first << " to Node " << edge.second << ", Weight: " << edge.weight << endl;
