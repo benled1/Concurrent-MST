@@ -9,9 +9,10 @@
 class DisjointSet {
 public:
     std::vector<int> parent; // Parent of each element's index
+    int size;
 
     DisjointSet(const std::vector<Vertex>& vertices) {
-        int size = vertices.size();
+        size = vertices.size();
         parent.resize(size);
 
         // Initialize mappings for vertices based on their IDs
@@ -37,13 +38,26 @@ public:
 
         parent[urep] = vrep;
     }
+
+    std::vector<int> getConnectedIds(int u) {
+        std::vector<int> connectedIds;
+        int root = find(u);
+
+        for (int i = 0; i< size;i++) {
+            if (find(i) == root) {
+                connectedIds.push_back(i);
+            }
+        }
+        return connectedIds;
+    }
+
 };
 
 
 void testConstructorAndInitialParent() {
     std::vector<Vertex> vertices = {0, 1, 2, 3, 4};
     DisjointSet ds(vertices);
-    for (size_t i = 0; i < vertices.size(); ++i) {
+    for (size_t i = 0; i < vertices.size(); i++) {
         assert(ds.find(i) == int(i)); // Each element should be its own parent
     }
     std::cout << "Constructor test passed.\n";
