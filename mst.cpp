@@ -68,15 +68,15 @@ void primMST(Graph* inputGraph) {
 
 }
 
-int main(int argc, char *argv[]) {
-    Graph inputGraph = Graph("inputGraphs/testData.csv", 9);
-    cout << "List of edges:" << endl;
-    for (const Edge& edge : inputGraph.edges) {
-        cout << "Node " << edge.first << " to Node " << edge.second << ", Weight: " << edge.weight << endl;
-    }
-    cout << inputGraph.V << endl;
-    cout << inputGraph.hasDuplicateEdges() << endl;
+// int main(int argc, char *argv[]) {
+//     Graph inputGraph = Graph("inputGraphs/testData.csv", 9);
+//     cout << "List of edges:" << endl;
+//     for (const Edge& edge : inputGraph.edges) {
+//         cout << "Node " << edge.first << " to Node " << edge.second << ", Weight: " << edge.weight << endl;
+//     }
+//     cout << inputGraph.V << endl;
+//     cout << inputGraph.hasDuplicateEdges() << endl;
 
-    primMST(&inputGraph);
+//     primMST(&inputGraph);
     
-}
+// }

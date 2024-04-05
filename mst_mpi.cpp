@@ -1,4 +1,6 @@
 #include "utils/graph.h"
+#include "utils/disjoint_set.h"
+#include <cassert> // For assert()
 using namespace std;
 
 // implement a disjoint set data structure here
@@ -10,16 +12,6 @@ using namespace std;
     // implement the full algorithm but in a serial fashion like written below
     // add the distributed portions by partitioning the edge set and adding broadcasting
 
-class DisjointSet {
-public:
-    DisjointSet(int v) {}
-    bool Connects(Edge* e) {}
-    void Merge(int vertex1, int vertex2) {}
-    int size();
-    Graph index();
-private:
-    int Find(int vertex) {}
-};
 
 Edge findMinOutGoingEdge(Graph* subgraph) {
     // a function to find the min outgoing edge from a vertex
@@ -74,5 +66,5 @@ void distributedPrims(Graph* inputGraph, int process_num, int world_size) {
 
 
 int main(int argc, char *argv[]){
-    distributedPrims();
+
 }

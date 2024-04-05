@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -20,6 +21,8 @@ Graph
 
 using namespace std;
 
+
+
 struct Edge {
 public:
     int first;  // First index
@@ -30,6 +33,16 @@ public:
         return weight > other.weight;
     }
 };
+
+struct Vertex {
+    int id;
+    vector<Edge> edges_connnected_to;
+    int color = -1;
+
+    Vertex(int index){
+        id = index;
+    }
+};  
 
 class Graph {
 public:
