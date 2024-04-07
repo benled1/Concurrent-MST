@@ -54,23 +54,23 @@ public:
 };
 
 
-void testConstructorAndInitialParent() {
-    std::vector<Vertex> vertices = {0, 1, 2, 3, 4};
-    DisjointSet ds(vertices);
-    for (size_t i = 0; i < vertices.size(); i++) {
-        assert(ds.find(i) == int(i)); // Each element should be its own parent
-    }
-    std::cout << "Constructor test passed.\n";
-}
+// void testConstructorAndInitialParent() {
+//     std::vector<Vertex> vertices = {0, 1, 2, 3, 4};
+//     DisjointSet ds(vertices);
+//     for (size_t i = 0; i < vertices.size(); i++) {
+//         assert(ds.find(i) == int(i)); // Each element should be its own parent
+//     }
+//     std::cout << "Constructor test passed.\n";
+// }
 
-void testMergeAndFindOperations() {
-    std::vector<Vertex> vertices = {0, 1, 2, 3, 4};
-    DisjointSet ds(vertices);
-    ds.merge(0, 1);
-    ds.merge(2, 3);
-    ds.merge(1, 2);
-    assert(ds.find(0) == ds.find(3)); // since all elements are connected, should have the same root for find
-    std::cout << "Merge test passed.\n";
-}
+// void testMergeAndFindOperations() {
+//     std::vector<Vertex> vertices = {0, 1, 2, 3, 4};
+//     DisjointSet ds(vertices);
+//     ds.merge(0, 1);
+//     ds.merge(2, 3);
+//     ds.merge(1, 2);
+//     assert(ds.find(0) == ds.find(3)); // since all elements are connected, should have the same root for find
+//     std::cout << "Merge test passed.\n";
+// }
 
 

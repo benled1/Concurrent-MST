@@ -1,154 +1,67 @@
 #pragma once
 #include <iostream>
+#include <vector>
+#include <string>
+#include <unordered_map>
 #include <fstream>
 #include <sstream>
-#include <vector>
-#include <set>
-#include <map>
-#include <algorithm>   
-#include <random>
 
-/*
-Edges
-- 2 Vertices
-- Weight
-Vertex
-- Holds a list of edges
-- ID to identify 
-Graph
-- Adjacency List?
-- Root node?
-*/
+class Vertex;
 
-using namespace std;
-
-struct Edge;
-
-struct Vertex {
-    int id;
-    vector<Edge> edges_connnected_to;
-    int color = -1;
-
-    Vertex(int index){
-        id = index;
-    }
-};  
-
-struct Edge {
+class Edge {
 public:
-    Vertex first;  // First index
-    Vertex second; // Second index
+    Vertex* vertex1;
+    Vertex* vertex2;
     int weight;
+    
+    Edge(Vertex* v1, Vertex* v2, int w) : vertex1(v1), vertex2(v2), weight(w) {}
+};
 
-    bool operator<(const Edge& other) const {
-        return weight > other.weight;
+class Vertex {
+public:
+    std::string id;
+    std::vector<Edge*> edges;
+    
+    Vertex(std::string id) : id(id) {}
+    
+    void addEdge(Edge* edge) {
+        edges.push_back(edge);
     }
 };
 
+
 class Graph {
 public:
-    int V; // No. of vertices in graph
-    vector<Edge> edges; // Edges in the graph
-    vector<Vertex> vertices; // Vertices in the graph
-    int maxV = 0;
-    int minV = 0;
-    // Create a graph from an input file
-    Graph(string filename){
-        ifstream file(filename);
-        if (!file.is_open()) {
-            cerr << "Error opening file: " << filename << endl;
-        }
-
-        string line;
-        bool first = true;
-        while (getline(file, line)) {
-            istringstream iss(line);
-            int firstIndex, secondIndex, weight;
-            char comma;
-            if (iss >> firstIndex >> comma >> secondIndex >> comma >> weight) {
-                // Only add an edge if that pairing doesnt already have one
-                // This is to convert directed graphs to undirected
-                Vertex& firstVertex = findOrCreateVertex(firstIndex);
-                Vertex& secondVertex = findOrCreateVertex(secondIndex);
-                if(!edgeExists(firstIndex, secondIndex)){
-                    Edge newEdge = {firstVertex,secondVertex,weight};
-                    edges.push_back(newEdge);
-                    // Add the edge to the vertices
-                    firstVertex.edges_connnected_to.push_back(newEdge);
-                    secondVertex.edges_connnected_to.push_back(newEdge);
-                }
-                // Update max and min
-                if(first == true){
-                    maxV = max({firstVertex.id, secondVertex.id});
-                    minV = min({firstVertex.id, secondVertex.id});
-                    first = false;
-                }
-                else{
-                    maxV = max({maxV, firstVertex.id, secondVertex.id});
-                    minV = min({minV, firstVertex.id, secondVertex.id});
-                }
-            } else {
-                cerr << "Error parsing line: " << line << endl;
-            }
-        }
-        file.close();
-        V = maxV - minV + 1;
+    std::unordered_map<std::string, Vertex*> vertices;
+    int V;
+    
+    void addEdge(std::string vertexId1, std::string vertexId2, int weight) {
+        Vertex* v1 = getOrCreateVertex(vertexId1);
+        Vertex* v2 = getOrCreateVertex(vertexId2);
+        Edge* edge = new Edge(v1, v2, weight);
+        v1->addEdge(edge);
+        v2->addEdge(edge);
     }
-
-    Vertex& findOrCreateVertex(int index) {
-        for(auto& vertex : vertices){
-            if(vertex.id == index){
-                return vertex;
-            }
+    
+    Vertex* getOrCreateVertex(std::string id) {
+        if (vertices.find(id) == vertices.end()) {
+            vertices[id] = new Vertex(id);
         }
-        Vertex newVertex(index);
-        vertices.push_back(newVertex);
-        return vertices.back();
+        return vertices[id];
     }
-
-    bool hasDuplicateEdges() {
-        set<Edge> edgeSet;
-        for (const auto& edge : edges) {
-            Edge sortedEdge = {min(edge.first.id, edge.second.id), max(edge.first.id, edge.second.id), edge.weight};
-
-            // Check if the edge already exists in the set
-            if (edgeSet.find(sortedEdge) != edgeSet.end()) {
-                // Duplicate found
-                return true;
-            }
-            // If not found, insert it into the set
-            edgeSet.insert(sortedEdge);
+    
+    void readCSV(const std::string& filePath) {
+        std::ifstream file(filePath);
+        std::string line;
+        while (std::getline(file, line)) {
+            std::stringstream ss(line);
+            std::string vertexId1, vertexId2;
+            int weight;
+            std::getline(ss, vertexId1, ',');
+            std::getline(ss, vertexId2, ',');
+            ss >> weight;
+            addEdge(vertexId1, vertexId2, weight);
         }
-        // No duplicates found
-        return false;
+        V = vertices.size(); // init the size
     }
-
-    bool edgeExists(int v1, int v2){
-        if(edges.empty()){
-            return false;
-        }
-        for (Edge e : edges){
-            if((e.first.id == v1 && e.second.id == v2) || (e.first.id == v2 && e.second.id == v1)){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    Vertex& getRandomUnvisitedVertex(){
-        int randomIndex = -1;
-        while(randomIndex == -1){
-            random_device rd; // obtain a random number from hardware
-            mt19937 gen(rd()); // seed the generator
-            uniform_int_distribution<> distr(minV, maxV); // define the range
-            randomIndex = distr(gen);
-            for(auto& vertex : vertices){
-                if(vertex.id == randomIndex){
-                    return vertex;
-                }
-            }
-            randomIndex = -1;
-        }
-    }
-
 };

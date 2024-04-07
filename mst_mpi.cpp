@@ -15,29 +15,29 @@ using namespace std;
     // add the distributed portions by partitioning the edge set and adding broadcasting
 
 
-Edge findMinOutGoingEdge(Graph& graph, vector<int> vertex_indices) {
-    // a function to find the min outgoing edge from a vertex
-    // iterate over the vertex list in the graph and look for the minedge that 
-    // does not have both ends of it in the vertex_indices
-    return graph.edges[0];
-}
+// Edge findMinOutGoingEdge(Graph& graph, vector<int> vertex_indices) {
+//     // a function to find the min outgoing edge from a vertex
+//     // iterate over the vertex list in the graph and look for the minedge that 
+//     // does not have both ends of it in the vertex_indices
+//     return graph.edges[0];
+// }
 
-// below is the serial version of the distributed program (does everything on process 0)
-void distributedPrims(Graph& inputGraph) {
-    // init the disjoint set, final mst, and min_edges
-    DisjointSet dset(inputGraph.vertices);
-    vector<Edge> mst;
-    vector<Edge> min_edges;
+// // below is the serial version of the distributed program (does everything on process 0)
+// void distributedPrims(Graph& inputGraph) {
+//     // init the disjoint set, final mst, and min_edges
+//     DisjointSet dset(inputGraph.vertices);
+//     vector<Edge> mst;
+//     vector<Edge> min_edges;
 
-    // find the minimum outgoing edge for each subgraph (this iteration, each subgraph is a vertex)
-    // if there is a minimum outgoing edge, push it onto the min_edges vector
-    for(int i; i<dset.size;i++) {
-        Edge min_leaving_edge = findMinOutGoingEdge(inputGraph, dset.getConnectedIds(i));
-        min_edges.push_back(min_leaving_edge);
-    }
+//     // find the minimum outgoing edge for each subgraph (this iteration, each subgraph is a vertex)
+//     // if there is a minimum outgoing edge, push it onto the min_edges vector
+//     for(int i; i<dset.size;i++) {
+//         Edge min_leaving_edge = findMinOutGoingEdge(inputGraph, dset.getConnectedIds(i));
+//         min_edges.push_back(min_leaving_edge);
+//     }
 
-    // sort the min_edges vector which now has a min_edge for every subgraph in the subgraph_set
-    sort(min_edges.begin(), min_edges.end());
+//     // sort the min_edges vector which now has a min_edge for every subgraph in the subgraph_set
+//     sort(min_edges.begin(), min_edges.end());
 
 
     // loop while there are still edges in the min_edges vector
@@ -66,7 +66,7 @@ void distributedPrims(Graph& inputGraph) {
     // }
 
     // return mst;
-}
+// }
 
 
 int main(int argc, char *argv[]){
@@ -76,5 +76,17 @@ int main(int argc, char *argv[]){
     // for (int i = 0; i<edges.size();i++) {
     //     cout << "Edge" << edges[i].weight << endl;
     // }
+    Graph g;
+    g.readCSV("./inputGraphs/testData.csv");
+    for (auto& vertexPair : g.vertices) {
+        std::cout << "Vertex: " << vertexPair.first << std::endl;
+        for (Edge* edge : vertexPair.second->edges) {
+            std::cout << "  connects to: " << edge->vertex1->id << " - " << edge->vertex2->id;
+            std::cout << " with weight: " << edge->weight << std::endl;
+        }
+    }
+    
+    return 0;
+
     
 }
