@@ -88,7 +88,7 @@ using namespace std;
 
 int main(int argc, char *argv[]){
     Graph g;
-    g.readCSV("./inputGraphs/testData.csv");
+    g.readCSV("./inputGraphs/connected_graph.csv");
     for (auto& vertexPair : g.vertices) {
         std::cout << "Vertex: " << vertexPair.first << std::endl;
         for (Edge* edge : vertexPair.second->edges) {
@@ -96,7 +96,8 @@ int main(int argc, char *argv[]){
             std::cout << " with weight: " << edge->weight << std::endl;
         }
     }
-    
+    string connectionTest = g.isConnected() ? "Graph is connected" : "Graph is not connected";
+    cout << connectionTest << endl;
     // return 0;
 
     testConstructor();

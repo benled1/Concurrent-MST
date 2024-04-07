@@ -75,24 +75,23 @@ public:
     }
 
     // Function to perform Depth-First Search (DFS)
-    void DFS(Vertex* vertex, std::unordered_set<std::string>& visited) {
-        visited.insert(vertex->id); // Mark current vertex as visited
-        // Traverse all adjacent vertices
+    void DFS(Vertex* vertex, std::unordered_set<int>& visited) {
+        visited.insert(vertex->id); 
+        // Traverse all connected vertices
         for (Edge* edge : vertex->edges) {
             Vertex* adjacentVertex = (edge->vertex1 == vertex) ? edge->vertex2 : edge->vertex1;
-            // If adjacent vertex is not visited, recursively call DFS
+            // if vertex is not visited, recursively call DFS
             if (visited.find(adjacentVertex->id) == visited.end()) {
                 DFS(adjacentVertex, visited);
             }
         }
     }
-
-    // Function to check if the graph is connected
+    // Check if we are connected 
     bool isConnected() {
         if (vertices.empty()) // If the graph has no vertices, it is trivially connected
             return true;
 
-        std::unordered_set<std::string> visited;
+        std::unordered_set<int> visited;
         // Start DFS from any vertex
         Vertex* startVertex = vertices.begin()->second; // Choose any vertex as starting point
         DFS(startVertex, visited);
