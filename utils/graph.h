@@ -17,6 +17,10 @@ public:
     int weight;
     
     Edge(Vertex* v1, Vertex* v2, int w) : vertex1(v1), vertex2(v2), weight(w) {}
+
+    bool operator<(const Edge& other) const {
+        return this->weight < other.weight;
+    }
 };
 
 class Vertex {
