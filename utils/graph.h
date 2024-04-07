@@ -6,6 +6,8 @@
 #include <fstream>
 #include <sstream>
 
+using namespace std;
+
 class Vertex;
 
 class Edge {
@@ -19,10 +21,10 @@ public:
 
 class Vertex {
 public:
-    std::string id;
+    int id;
     std::vector<Edge*> edges;
     
-    Vertex(std::string id) : id(id) {}
+    Vertex(int id) : id(id) {}
     
     void addEdge(Edge* edge) {
         edges.push_back(edge);
@@ -32,10 +34,10 @@ public:
 
 class Graph {
 public:
-    std::unordered_map<std::string, Vertex*> vertices;
+    std::unordered_map<int, Vertex*> vertices;
     int V;
     
-    void addEdge(std::string vertexId1, std::string vertexId2, int weight) {
+    void addEdge(int vertexId1, int vertexId2, int weight) {
         Vertex* v1 = getOrCreateVertex(vertexId1);
         Vertex* v2 = getOrCreateVertex(vertexId2);
         Edge* edge = new Edge(v1, v2, weight);
@@ -43,7 +45,7 @@ public:
         v2->addEdge(edge);
     }
     
-    Vertex* getOrCreateVertex(std::string id) {
+    Vertex* getOrCreateVertex(int id) {
         if (vertices.find(id) == vertices.end()) {
             vertices[id] = new Vertex(id);
         }
@@ -55,10 +57,15 @@ public:
         std::string line;
         while (std::getline(file, line)) {
             std::stringstream ss(line);
-            std::string vertexId1, vertexId2;
+            int vertexId1, vertexId2;
             int weight;
-            std::getline(ss, vertexId1, ',');
-            std::getline(ss, vertexId2, ',');
+            string temp;
+            std::getline(ss, temp, ',');
+            vertexId1 = stoi(temp);
+
+            std::getline(ss, temp, ',');
+            vertexId2 = stoi(temp);
+
             ss >> weight;
             addEdge(vertexId1, vertexId2, weight);
         }

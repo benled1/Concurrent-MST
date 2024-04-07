@@ -87,15 +87,15 @@ using namespace std;
 
 
 int main(int argc, char *argv[]){
-    // Graph g;
-    // g.readCSV("./inputGraphs/testData.csv");
-    // for (auto& vertexPair : g.vertices) {
-    //     std::cout << "Vertex: " << vertexPair.first << std::endl;
-    //     for (Edge* edge : vertexPair.second->edges) {
-    //         std::cout << "  connects to: " << edge->vertex1->id << " - " << edge->vertex2->id;
-    //         std::cout << " with weight: " << edge->weight << std::endl;
-    //     }
-    // }
+    Graph g;
+    g.readCSV("./inputGraphs/testData.csv");
+    for (auto& vertexPair : g.vertices) {
+        std::cout << "Vertex: " << vertexPair.first << std::endl;
+        for (Edge* edge : vertexPair.second->edges) {
+            std::cout << "  connects to: " << edge->vertex1->id << " - " << edge->vertex2->id;
+            std::cout << " with weight: " << edge->weight << std::endl;
+        }
+    }
     
     // return 0;
 
