@@ -40,53 +40,51 @@ using namespace std;
 //     sort(min_edges.begin(), min_edges.end());
 
 
-    // loop while there are still edges in the min_edges vector
-    // while(min_edges){
-    //     // for every min edge, check if it connects two disjoint subgraphs, if yes, merge the two it connects
-    //     // if a min edge merges two subgraphs, push it to our final mst.
-    //     for (int i; i<min_edges.size();i++) {
-    //         if (subgraphs_set.Connects(&min_edges[i])) {
-    //             subgraphs_set.Merge(min_edges[i].first, min_edges[i].second);
-    //             mst.push_back(min_edges[i]);
-    //         }
-    //     }
+//     loop while there are still edges in the min_edges vector
+//     while(min_edges){
+//         // for every min edge, check if it connects two disjoint subgraphs, if yes, merge the two it connects
+//         // if a min edge merges two subgraphs, push it to our final mst.
+//         for (int i; i<min_edges.size();i++) {
+//             if (subgraphs_set.Connects(&min_edges[i])) {
+//                 subgraphs_set.Merge(min_edges[i].first, min_edges[i].second);
+//                 mst.push_back(min_edges[i]);
+//             }
+//         }
         
-    //     // clear the min_edges
-    //     min_edges.clear();
+//         // clear the min_edges
+//         min_edges.clear();
 
-    //     // refill the min_edges with the new min_leaving edges on the new merged subgraphs
-    //     // there should be a min edge for every new subgraph in the subgraphs_set
-    //     for(int i; i<subgraphs_set.size();i++) {
-    //         Edge min_leaving_edge = findMinOutGoingEdge(&subgraphs_set[i]);
-    //         if (min_leaving_edge) {
-    //             min_edges.push_back(min_leaving_edge);
-    //         }
-    //     }
-    //     // repeat above until we find no min outgoing edges due to the subgraphs_set only having one subgraph.
-    // }
+//         // refill the min_edges with the new min_leaving edges on the new merged subgraphs
+//         // there should be a min edge for every new subgraph in the subgraphs_set
+//         for(int i; i<subgraphs_set.size();i++) {
+//             Edge min_leaving_edge = findMinOutGoingEdge(&subgraphs_set[i]);
+//             if (min_leaving_edge) {
+//                 min_edges.push_back(min_leaving_edge);
+//             }
+//         }
+//         // repeat above until we find no min outgoing edges due to the subgraphs_set only having one subgraph.
+//     }
 
-    // return mst;
+//     return mst;
 // }
 
 
 int main(int argc, char *argv[]){
-    // Graph inputGraph = Graph("inputGraphs/testData.csv");
-    // vector<Edge> edges = inputGraph.edges;
-    // sort(edges.begin(), edges.end());
-    // for (int i = 0; i<edges.size();i++) {
-    //     cout << "Edge" << edges[i].weight << endl;
+    // Graph g;
+    // g.readCSV("./inputGraphs/testData.csv");
+    // for (auto& vertexPair : g.vertices) {
+    //     std::cout << "Vertex: " << vertexPair.first << std::endl;
+    //     for (Edge* edge : vertexPair.second->edges) {
+    //         std::cout << "  connects to: " << edge->vertex1->id << " - " << edge->vertex2->id;
+    //         std::cout << " with weight: " << edge->weight << std::endl;
+    //     }
     // }
-    Graph g;
-    g.readCSV("./inputGraphs/testData.csv");
-    for (auto& vertexPair : g.vertices) {
-        std::cout << "Vertex: " << vertexPair.first << std::endl;
-        for (Edge* edge : vertexPair.second->edges) {
-            std::cout << "  connects to: " << edge->vertex1->id << " - " << edge->vertex2->id;
-            std::cout << " with weight: " << edge->weight << std::endl;
-        }
-    }
     
-    return 0;
+    // return 0;
 
+    testConstructor();
+    testMerge();
+    testFind();
+    testGetConnectedIds();
     
 }
