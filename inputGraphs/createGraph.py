@@ -1,54 +1,48 @@
 import random
 import csv
-import os
-import sys
 
-def dfs(graph, node, visited):
-    visited[node] = True
-    for neighbor in graph[node]:
-        if not visited[neighbor]:
-            dfs(graph, neighbor, visited)
+class Graph:
+    def __init__(self, vertices):
+        self.vertices = vertices
+        self.edges = []
 
-# Check if the correct number of arguments is provided
-if len(sys.argv) != 3:
-    print("Usage: python createGraph.py <num_nodes> <num_edges>")
-    sys.exit(1)
+    def add_edge(self, v1, v2, weight):
+        self.edges.append((v1, v2, weight))
 
-# Get the number of nodes and edges from command-line arguments
-num_nodes = int(sys.argv[1])
-num_edges = int(sys.argv[2])
+    def generate_connected_graph(self):
+        # Generate random edges to ensure connectivity
+        for i in range(self.vertices - 1):
+            self.add_edge(i, i + 1, random.randint(1, 100))
 
-# Count the number of existing graph files in the directory
-existing_files = [filename for filename in os.listdir(".") if filename.startswith("graph") and filename.endswith(".csv")]
-num_existing_files = len(existing_files)
+        # Connect the last vertex to the first one to close the loop
+        self.add_edge(self.vertices - 1, 0, random.randint(1, 100))
 
-# Generate a connected graph
-edges = set()
-graph = {i: [] for i in range(1, num_nodes + 1)}
-visited = {i: False for i in range(1, num_nodes + 1)}
+    def write_to_csv(self, filename):
+        with open(filename, 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            for edge in self.edges:
+                writer.writerow(edge)
 
-# Generate a random spanning tree
-for i in range(2, num_nodes + 1):
-    parent = random.randint(1, i - 1)
-    weight = random.randint(1, 100)
-    edges.add((parent, i, weight))
-    graph[parent].append(i)
-    graph[i].append(parent)
+if __name__ == "__main__":
+    num_vertices = int(input("Enter the number of vertices: "))
+    num_edges = int(input("Enter the number of edges (greater than or equal to vertices): "))
 
-# Add additional random edges to complete the required number of edges
-while len(edges) < num_edges:
-    nodeA = random.randint(1, num_nodes)
-    nodeB = random.randint(1, num_nodes)
-    if nodeA != nodeB and (nodeA, nodeB) not in edges:
-        edges.add((nodeA, nodeB, random.randint(1, 100)))
+    if num_edges < num_vertices:
+        print("Number of edges must be greater than or equal to the number of vertices.")
+    else:
+        graph = Graph(num_vertices)
+        graph.generate_connected_graph()
+        # Generate remaining random edges
+        for _ in range(num_edges - num_vertices + 1):
+            v1 = random.randint(0, num_vertices - 1)
+            v2 = random.randint(0, num_vertices - 1)
+            while v1 == v2:  # Ensure no self-loops
+                v2 = random.randint(0, num_vertices - 1)
+            weight = random.randint(1, 100)
+            graph.add_edge(v1, v2, weight)
 
-# Write to CSV file
-filename = 'graph_{}.csv'.format(num_existing_files + 1)
-with open(filename, 'w') as csvfile:
-    fieldnames = ['nodeA', 'nodeB', 'weight']
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        graph.write_to_csv("connected_graph.csv")
+        print("CSV file created successfully.")
 
-    writer.writeheader()
-    for edge in edges:
-        writer.writerow({'nodeA': edge[0], 'nodeB': edge[1], 'weight': edge[2]})
- 
+# Your isConnected method in C++
+

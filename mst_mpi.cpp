@@ -99,7 +99,7 @@ vector<Edge> distributedPrims(Graph& inputGraph) {
 
 int main(int argc, char *argv[]){
     Graph g;
-    g.readCSV("./inputGraphs/testData.csv");
+    g.readCSV("./inputGraphs/connected_graph.csv");
     for (auto& vertexPair : g.vertices) {
         std::cout << "Vertex: " << vertexPair.first << std::endl;
         for (Edge* edge : vertexPair.second->edges) {
