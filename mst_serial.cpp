@@ -40,7 +40,7 @@ Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
 
 
 // below is the serial version of the distributed program (does everything on process 0)
-vector<Edge> distributedPrims(Graph& inputGraph) {
+vector<Edge> serialPrims(Graph& inputGraph) {
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
@@ -94,14 +94,37 @@ vector<Edge> distributedPrims(Graph& inputGraph) {
 
 
 int main(int argc, char *argv[]){
-    Graph g;
-    g.readCSV("./inputGraphs/connected_graph.csv");
-    
+    if (argc <= 1) {
+        cout<<"mst_serial requires at least a filepath."<<endl;
+        return 0;
+    }
+    bool testVerificationLogs = false;
+    string graphFilePath = argv[1];
+    if (argc >= 3) {
+        testVerificationLogs = argv[2];
+    }
 
-    vector<Edge> mst = distributedPrims(g);
+    Graph g;
+
+    g.readCSV(graphFilePath);
+
+    vector<Edge> mst = serialPrims(g);
 
     cout<<"MST:"<<endl;
     for(Edge edge: mst) {
         cout<<edge.vertex1->id<<"-"<<edge.vertex2->id<<": Weight="<<edge.weight<<endl;
+    }
+
+    if (testVerificationLogs) {
+        if (mst.size() != g.V-1) {
+            cout<<"WARNING: MST does not contain V-1 edges."<<endl;
+        }else{
+            cout<<"TEST LOG: Graph size is valid."<<endl;
+        }
+        if (!g.isConnected()) {
+            cout<<"WANRING: MST is not connected."<<endl;
+        }else{
+            cout<<"TEST LOG: Graph is connected."<<endl;
+        }
     }
 }

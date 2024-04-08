@@ -1,34 +1,17 @@
-# Compiler
-CXX = g++
+CC = g++
+CFLAGS = -std=c++11 -Wall
+INCLUDES = -I./utils
 
-# Compiler flags
-CXXFLAGS = -std=c++11 -Wall
+all: mst_mpi mst_thread mst_serial
 
-# Source files directory
-SRC_DIR = .
-UTILS_DIR = utils
+mst_mpi: mst_mpi.cpp 
+	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-# Source files
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-SRCS += $(wildcard $(UTILS_DIR)/*.cpp)
+mst_thread: mst_thread.cpp 
+	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-# Object files
-OBJS = $(SRCS:.cpp=.o)
+mst_serial: mst_serial.cpp 
+	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-# Executable name
-EXEC = mst
-
-# Main target
-all: $(EXEC)
-
-# Compile source files into object files
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Link object files into executable
-$(EXEC): $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-# Clean
 clean:
-	rm -f $(EXEC) $(OBJS)
+	rm -f mst_mpi mst_thread mst_serial
