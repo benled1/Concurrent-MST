@@ -7,6 +7,9 @@
 #include <sstream>
 #include <unordered_set>
 #include <queue>
+#include <iterator>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -25,7 +28,7 @@ class Vertex {
 public:
     int id;
     std::vector<Edge*> edges;
-    
+    int color = -1;
     Vertex(int id) : id(id) {}
     
     void addEdge(Edge* edge) {
@@ -38,7 +41,11 @@ class Graph {
 public:
     std::unordered_map<int, Vertex*> vertices;
     int V;
-    
+
+    Graph(){
+        std::srand(std::time(nullptr));
+    }
+
     void addEdge(int vertexId1, int vertexId2, int weight) {
         Vertex* v1 = getOrCreateVertex(vertexId1);
         Vertex* v2 = getOrCreateVertex(vertexId2);
@@ -97,5 +104,21 @@ public:
         DFS(startVertex, visited);
         // If number of visited vertices equals total number of vertices, the graph is connected
         return visited.size() == vertices.size();
+    }
+
+    Vertex* getRandomUnvisitedVertex(){
+        int color = 0;
+        Vertex* random_item;
+        if(vertices.empty()){
+            return nullptr;
+        }
+        while(color != -1){
+            int randomIndex = std::rand() % vertices.size();
+            auto it = std::begin(vertices);
+            std::advance(it, randomIndex);
+            random_item = it->second;
+            color = random_item->color;
+        }
+        return random_item;
     }
 };
