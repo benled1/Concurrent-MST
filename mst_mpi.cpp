@@ -1,9 +1,10 @@
 #include "utils/graph.h"
 #include "utils/disjoint_set.h"
-#include <cassert> // For assert()
+#include <cassert>
 #include <algorithm>
 #include <string>
 #include <limits>
+#include </usr/include/mpi/mpi.h>
 
 using namespace std;
 
@@ -40,11 +41,12 @@ Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
 
 
 // below is the serial version of the distributed program (does everything on process 0)
-vector<Edge> distributedPrims(Graph& inputGraph) {
+vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
     vector<Edge> min_edges;
+    bool edges_remaining = true;
 
     for(int i=0; i<ds.size;i++) {
         if(ds.find(i)!=i) {
@@ -97,11 +99,27 @@ int main(int argc, char *argv[]){
     Graph g;
     g.readCSV("./inputGraphs/connected_graph.csv");
     
+    MPI_Init(NULL, NULL);
 
-    vector<Edge> mst = distributedPrims(g);
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    cout<<"MST:"<<endl;
-    for(Edge edge: mst) {
-        cout<<edge.vertex1->id<<"-"<<edge.vertex2->id<<": Weight="<<edge.weight<<endl;
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+
+    MPI_Get_processor_name(processor_name, &name_len);
+
+    vector<Edge> mst = distributedPrims(g, world_size, world_rank);
+
+    if (world_rank==0) {
+        cout<<"MST:"<<endl;
+        for(Edge edge: mst) {
+            cout<<edge.vertex1->id<<"-"<<edge.vertex2->id<<": Weight="<<edge.weight<<endl;
+        }
     }
+    MPI_Finalize();
+    return 0;
 }
