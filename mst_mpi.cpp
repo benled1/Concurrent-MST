@@ -40,13 +40,32 @@ Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
 }
 
 
-// below is the serial version of the distributed program (does everything on process 0)
+// below is the distributed version of prims 
 vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
     vector<Edge> min_edges;
     bool edges_remaining = true;
+    
+    
+    // get portion of the ds that this process is responsible for
+    vector<int> ds_range;
+    int min_vertices_per_process = ds.size / world_size;
+    int remaining_vertices = ds.size % world_size;
+
+    if (world_rank==0) {
+        ds_range = {0, min_vertices_per_process};
+        if (world_rank < remaining_vertices) {
+            ds_range[1]++;
+            remaining_vertices--;
+        }
+    }
+
+    
+
+
+
 
     for(int i=0; i<ds.size;i++) {
         if(ds.find(i)!=i) {
