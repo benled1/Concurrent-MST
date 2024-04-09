@@ -1,11 +1,12 @@
 CC = g++
+MPICXX = mpic++
 CFLAGS = -std=c++11 -Wall
 INCLUDES = -I./utils
 
 all: mst_mpi mst_thread mst_serial
 
 mst_mpi: mst_mpi.cpp 
-	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
+	$(MPICXX) $(CFLAGS) $(INCLUDES) $^ -o $@
 
 mst_thread: mst_thread.cpp 
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@

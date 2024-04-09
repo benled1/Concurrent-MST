@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+#SBATCH --cpus-per-task=1
+#SBATCH --nodes=1
+#SBATCH --ntasks=4
+#SBATCH --partition=slow
+#SBATCH --mem=10G
+
+srun ./mst_serial /home/bledingh/CMP431-slurm/final_project/CMPT431-Project/inputGraphs/connected_graph.csv true
