@@ -68,13 +68,6 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         start_idx = end_idx;
     }
 
-    // print out the ds_range for debugging purposes
-    if (world_rank==0) {
-        for (int i=0;i<world_size;i++) {
-            cout<<"Process "<<i<<","<<"{"<<ds_range[i][0]<<", "<<ds_range[i][1]<<"}"<<endl;
-        }
-    }
-
     // in parallel loop over portion that was allocated
     for(int i=ds_range[world_rank][0]; i<ds_range[world_rank][1];i++) {
         if(ds.find(i)!=i) {
@@ -161,12 +154,6 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
     }
 
     sort(global_min_edges.begin(), global_min_edges.end());
-    
-    if (world_rank==0) {
-        for (int i=0;i<total_count;i++) {
-            cout<<global_min_edges[i].vertex1->id<<"-"<<global_min_edges[i].vertex2->id<<": Weight = "<<global_min_edges[i].weight<<endl;
-        }
-    }
 
     if (world_rank == 0) {
         delete[] counts;
@@ -296,13 +283,6 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         local_min_edges.clear();
 
 
-        if (world_rank==0) {
-            for (int i=0;i<total_count;i++) {
-                cout<<global_min_edges[i].vertex1->id<<"-"<<global_min_edges[i].vertex2->id<<": Weight = "<<global_min_edges[i].weight<<endl;
-            }
-        }
-
-
         // check to see if we are going to repeat the loop.
         if (global_min_edges.empty() && world_rank==0) {
             edges_remaining = false;
@@ -353,6 +333,18 @@ int main(int argc, char *argv[]){
         cout<<"MST:"<<endl;
         for(Edge edge: mst) {
             cout<<edge.vertex1->id<<"-"<<edge.vertex2->id<<": Weight="<<edge.weight<<endl;
+        }
+        if (testVerificationLogs) {
+            if (mst.size() != g.V-1) {
+                cout<<"WARNING: MST does not contain V-1 edges."<<endl;
+            }else{
+                cout<<"TEST LOG: Graph size is valid."<<endl;
+            }
+            if (!g.isConnected()) {
+                cout<<"WANRING: MST is not connected."<<endl;
+            }else{
+                cout<<"TEST LOG: Graph is connected."<<endl;
+            }
         }
     }
     MPI_Finalize();
