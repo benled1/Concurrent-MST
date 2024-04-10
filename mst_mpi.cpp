@@ -150,18 +150,29 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
                 all_vertex2s, counts, displacements, MPI_INT,
                 0, MPI_COMM_WORLD);
 
+
     if (world_rank==0) {
         for (int i=0;i<total_count;i++) {
-            cout<<"Weight "<<i<<" = "<<all_weights[i]<<endl;
+            Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
+            Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
+            Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
+            global_min_edges.push_back(*edge);
         }
     }
 
-    // delete[] local_weights;
-    // if (world_rank == 0) {
-    //     delete[] counts;
-    //     delete[] displacements;
-    //     delete[] all_weights; // When done processing
-    // }
+    sort(global_min_edges.begin(), global_min_edges.end());
+    
+    if (world_rank==0) {
+        for (int i=0;i<total_count;i++) {
+            cout<<global_min_edges[i].vertex1->id<<"-"<<global_min_edges[i].vertex2->id<<": Weight = "<<global_min_edges[i].weight<<endl;
+        }
+    }
+
+    if (world_rank == 0) {
+        delete[] counts;
+        delete[] displacements;
+        delete[] all_weights; // When done processing
+    }
     // in process 0 we will have to match the id to the vertex
     // when rebuilding the Edge object, 
 
