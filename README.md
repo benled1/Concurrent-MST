@@ -51,6 +51,7 @@ DistributedPrims(Graph inputGraph, int world_size, int world_rank) {
     DisjointSet ds(num_vertices);
     vector<Edge> mst;
     vector<Edge> global_min_edges;
+    bool edges_remaining = true;
 
     // in parallel #################
     vector<Edge> local_min_edges;
@@ -72,7 +73,7 @@ DistributedPrims(Graph inputGraph, int world_size, int world_rank) {
 
     sort(global_min_edges); // sort smallest to larget
 
-    while(global_min_edges contains edges) {
+    while(edges_remaining==true) {
 
         for(every edge in min_edges) {
             if(edge span across two disjoint subsets in ds) {
@@ -82,6 +83,8 @@ DistributedPrims(Graph inputGraph, int world_size, int world_rank) {
         }
 
         global_min_edges.clear(); // empty the min_edges vector
+
+        broadcast(ds);
     
         // in parallel #################
         vector<Edge> local_min_edges;
@@ -101,6 +104,11 @@ DistributedPrims(Graph inputGraph, int world_size, int world_rank) {
             recv(global_min_edges, processi);
         }
         
+        if (global_min_edges.empty()) {
+            edges_remaining = false;
+        }
+
+        Barrier() // wait on all the processes to be ready for the next loop
     }
     return mst;
 }
