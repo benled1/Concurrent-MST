@@ -172,7 +172,10 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         delete[] counts;
         delete[] displacements;
         delete[] all_weights; // When done processing
+        delete[] all_vertex1s;
+        delete[] all_vertex2s;
     }
+    local_min_edges.clear();
     // in process 0 we will have to match the id to the vertex
     // when rebuilding the Edge object, 
 
@@ -182,34 +185,137 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
     // sort(min_edges.begin(), min_edges.end());
 
 
-    // // loop while there are still edges in the min_edges vector
-    // while(!min_edges.empty()){
-    //     for (int i=0; i<min_edges.size();i++) {
-    //         if(ds.find(min_edges[i].vertex1->id) != ds.find(min_edges[i].vertex2->id)) {
-    //             ds.merge(min_edges[i].vertex1->id, min_edges[i].vertex2->id);
-    //             mst.push_back(min_edges[i]);
-    //         }
-    //     }
+    // loop while there are still edges in the min_edges vector
+    while(edges_remaining){
+        if (world_rank==0) {
+            for (int i=0; i<global_min_edges.size();i++) {
+                if(ds.find(global_min_edges[i].vertex1->id) != ds.find(global_min_edges[i].vertex2->id)) {
+                    ds.merge(global_min_edges[i].vertex1->id, global_min_edges[i].vertex2->id);
+                    mst.push_back(global_min_edges[i]);
+                }
+            }
+            // clear the min_edges
+            global_min_edges.clear();
+        }
+        // NEED TO SEND THE UPDATED MAIN DS TO THE REST OF THE PROCESSES
+        MPI_Bcast(&ds.parent[0], ds.size, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
         
-    //     // clear the min_edges
-    //     min_edges.clear();
+        // in parallel loop over portion that was allocated
+        for(int i=ds_range[world_rank][0]; i<ds_range[world_rank][1];i++) {
+            if(ds.find(i)!=i) {
+                continue;
+            }
+            vector<int> connected_vertices = ds.getConnectedIds(i);
+            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+            if (min_leaving_edge==nullptr){
+                continue;
+            }
+            local_min_edges.push_back(*min_leaving_edge);
+        }
+        // at this point we should have an array of min outgoing edges from each of the 
+        // subgraphs in the partition of ds for this process
 
-    //     for(int i=0; i<ds.size;i++) {
-    //         if(ds.find(i)!=i) {
-    //             continue;
-    //         }
-    //         vector<int> connected_vertices = ds.getConnectedIds(i);
-    //         Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
-    //         if (min_leaving_edge==nullptr){
-    //             continue;
-    //         }
-    //         min_edges.push_back(*min_leaving_edge);
-    //     }
+        // build three arrays which can be sent over MPI 
+        int local_weights[local_min_edges.size()];
+        int local_vertex1s[local_min_edges.size()];
+        int local_vertex2s[local_min_edges.size()];
+        for (int i=0;i<local_min_edges.size();i++) {
+            local_weights[i] = local_min_edges[i].weight;
+            local_vertex1s[i] = local_min_edges[i].vertex1->id;
+            local_vertex2s[i] = local_min_edges[i].vertex2->id;
+        }
 
-    //     sort(min_edges.begin(), min_edges.end());
-    // }
+        // prepare for gathering
+        int local_count = local_min_edges.size();
+        int* counts = nullptr; // counts of elements sent by each process
+        int* displacements = nullptr; // displacements where each segment begins
 
-    // return mst;
+        if (world_rank==0) {
+            counts = new int[world_size];
+            displacements = new int[world_size];
+        }
+
+        // gather the size of array being sent to process 0
+        MPI_Gather(&local_count, 1, MPI_INT, counts, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        if (world_rank==0) {
+            displacements[0] = 0;
+            for (int i=1;i<world_size;i++) {
+                displacements[i] = displacements[i-1] + counts[i-1];
+            }
+        }
+
+        int total_count;
+        if (world_rank==0) {
+            total_count = std::accumulate(counts, counts+world_size, 0);
+        } else {
+            total_count = 0;
+        }
+
+        int* all_weights;
+        int* all_vertex1s;
+        int* all_vertex2s;
+        if (world_rank==0) {
+            all_weights = new int[total_count];
+            all_vertex1s = new int[total_count];
+            all_vertex2s = new int[total_count];
+        } else {
+            all_weights = nullptr;
+            all_vertex1s = nullptr;
+            all_vertex2s = nullptr;    
+        }
+
+        MPI_Gatherv(local_weights, local_count, MPI_INT,
+                    all_weights, counts, displacements, MPI_INT,
+                    0, MPI_COMM_WORLD);
+        MPI_Gatherv(local_vertex1s, local_count, MPI_INT,
+                    all_vertex1s, counts, displacements, MPI_INT,
+                    0, MPI_COMM_WORLD);
+        MPI_Gatherv(local_vertex2s, local_count, MPI_INT,
+                    all_vertex2s, counts, displacements, MPI_INT,
+                    0, MPI_COMM_WORLD);
+
+
+        if (world_rank==0) {
+            for (int i=0;i<total_count;i++) {
+                Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
+                Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
+                Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
+                global_min_edges.push_back(*edge);
+            }
+        }
+
+        if (world_rank == 0) {
+            delete[] counts;
+            delete[] displacements;
+            delete[] all_weights; // When done processing
+            delete[] all_vertex1s;
+            delete[] all_vertex2s;
+        }
+        local_min_edges.clear();
+
+
+        if (world_rank==0) {
+            for (int i=0;i<total_count;i++) {
+                cout<<global_min_edges[i].vertex1->id<<"-"<<global_min_edges[i].vertex2->id<<": Weight = "<<global_min_edges[i].weight<<endl;
+            }
+        }
+
+
+        // check to see if we are going to repeat the loop.
+        if (global_min_edges.empty() && world_rank==0) {
+            edges_remaining = false;
+        }
+
+        MPI_Bcast(&edges_remaining, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        if (edges_remaining) {
+            sort(global_min_edges.begin(), global_min_edges.end());
+        }
+    }
+
+    return mst;
 }
 
 
