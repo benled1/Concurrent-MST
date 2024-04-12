@@ -28,7 +28,8 @@ void mergeTree(int thread1, int thread2, std::vector<std::vector<Edge>>& threadM
         e.vertex2->color = thread2;
         edgesSet.insert(e);
     }
-    bool hasDuplicates = edgesSet.size() != threadMSTVec[thread2].size();;
+    bool hasDuplicates = edgesSet.size() != threadMSTVec[thread2].size();
+    cout << "Duplicates: " << (hasDuplicates ? "Yes" : "No") << endl;
     if(hasDuplicates){
         // Remake vector if it has dupes
         threadMSTVec[thread2].clear();
@@ -46,7 +47,7 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
         graphMutex.lock();
         Vertex* starting_vertex = g.getRandomUnvisitedVertex();
         graphMutex.unlock();
-        cout << tid << " grabbed " << starting_vertex->id << endl;
+        cout << "Thread " << tid << " grabbed " << starting_vertex->id << endl;
         if(starting_vertex == nullptr){
             return;
         }
@@ -73,7 +74,6 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
 
             vertexMutexes[targetVertex->id].lock();
             int targetColor = targetVertex->color;
-            cout << targetVertex->id << " : " << targetColor << endl;
             if(targetColor == -1){
                 //Unvisited
                 targetVertex->color = tid;
@@ -122,7 +122,6 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
         } 
         break;  
     }
-    
 }
 
 void mstSerial(int nthreads, Graph g){
@@ -137,19 +136,24 @@ void mstSerial(int nthreads, Graph g){
     cout << "Starting Threads" << endl;
     for(int i = 0; i < nthreads; i++){
        threads[i] = std::thread(mstThread, i, std::ref(g), std::ref(threadMSTVec), std::ref(restartVec));
+        cout << i << " Thread started" << endl;
     }
     for(int i = 0; i < nthreads; i++){
         threads[i].join();
+    }
+    cout << "Output MST" << endl;
+    for(Edge e : threadMSTVec[0]){
+        cout << e.vertex1->id << " --- " << e.vertex2->id << ", weight: " << e.weight << endl;
     }
     return;
 }
 
 int main(int argc, char *argv[]){
     Graph g;
-    g.readCSV("./inputGraphs/connected_graph.csv");
+    g.readCSV("./inputGraphs/testData.csv");
     string connectionTest = g.isConnected() ? "Graph is connected" : "Graph is not connected";
     cout << connectionTest << endl;
-    int n_threads = 2;
+    int n_threads = 4;
     mstSerial(n_threads, g);
     return 0;
 }
