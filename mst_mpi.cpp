@@ -6,56 +6,35 @@
 #include <numeric>
 #include <limits>
 #include </usr/include/mpi/mpi.h>
+#include <ctime>
 
 using namespace std;
 
-
-
-bool isLeavingEdge(Edge& edge, vector<int> connected_vertices) {
-    if (find(connected_vertices.begin(), connected_vertices.end(), edge.vertex1->id) == connected_vertices.end() ||
-        find(connected_vertices.begin(), connected_vertices.end(), edge.vertex2->id) == connected_vertices.end()) {
-        return true;
-    }
-    return false;
-}
-
-
-Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
-
+/**
+ * Finds the miniumum weighted edge leaving the set of connected vertices the root vertex belongs to.
+*/
+Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
     Edge* minEdge = nullptr;
     int minWeight = numeric_limits<int>::max();
-
+    vector<int> connected_vertices = ds.getConnectedIds(root_id); // get vector of vertex id's connected to root
     for(int vertexId: connected_vertices){
         Vertex* currVertex = graph.vertices[vertexId];
         for(Edge* edge: currVertex->edges) {
-            // check if the edge is leaving the connected set
-            if (isLeavingEdge(*edge, connected_vertices)) {
+            if (ds.find(edge->vertex1->id) != ds.find(edge->vertex2->id)) { // if the edge is leaving the connected set
                 if (edge->weight < minWeight) {
                     minWeight = edge->weight;
                     minEdge = edge;
                 }
-            } else {
-                continue;
             }
         }
     }
     return minEdge;
 }
 
-
-
-
-// below is the distributed version of prims 
-vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
-    // init the disjoint set, final mst, and min_edges
-    DisjointSet ds(inputGraph.V);
-    vector<Edge> mst;
-    vector<Edge> local_min_edges;
-    vector<Edge> global_min_edges;
-    bool edges_remaining = true;
-    
-    
-    // get portion of the ds that this process is responsible for
+/**
+ * Constructs a vector of start,end indices for each process to operate on in the disjoint set.
+*/
+vector<vector<int>> getProcessRanges(DisjointSet& ds, int world_size) {
     vector<vector<int>> ds_range;
     int min_vertices_per_process = ds.size / world_size;
     int remaining_vertices = ds.size % world_size;
@@ -64,26 +43,34 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
     for (int i=0;i<world_size;i++) {
         int vertices_for_curr = min_vertices_per_process + (i < remaining_vertices ? 1 : 0);
         int end_idx = start_idx + vertices_for_curr;
-        ds_range.push_back({start_idx, end_idx});
+        ds_range.push_back({start_idx, end_idx}); // push the starting and ending indices for the i-th process
         start_idx = end_idx;
     }
+    return ds_range;
+}
 
-    // in parallel loop over portion that was allocated
+/**
+ * Iterate over the designated section of disjoint set and add the minimum weighted leaving edge from each to the local_min_edges vector.
+*/
+void selectMinEdges(vector<Edge>* local_min_edges, vector<vector<int>>& ds_range, Graph& inputGraph, DisjointSet& ds, int world_rank) {
     for(int i=ds_range[world_rank][0]; i<ds_range[world_rank][1];i++) {
-        if(ds.find(i)!=i) {
+        if(ds.find(i)!=i) { // if the current vertex is not the root of it's connected subgraph, continue
             continue;
         }
-        vector<int> connected_vertices = ds.getConnectedIds(i);
-        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
         if (min_leaving_edge==nullptr){
             continue;
         }
-        local_min_edges.push_back(*min_leaving_edge);
+        local_min_edges->push_back(*min_leaving_edge);
     }
-    // at this point we should have an array of min outgoing edges from each of the 
-    // subgraphs in the partition of ds for this process
+}
 
-    // build three arrays which can be sent over MPI 
+/**
+ * Serialize the local_min_edges and gather them in the root process (world_rank = 0).
+ * The goal is to populate a global_min_edges with candidate edges for the MST from all processes.
+*/
+void gatherEdges(vector<Edge>* global_min_edges, vector<Edge>& local_min_edges, Graph& inputGraph, int world_rank, int world_size) {
+    // serialize each property of the edges into their own array
     int local_weights[local_min_edges.size()];
     int local_vertex1s[local_min_edges.size()];
     int local_vertex2s[local_min_edges.size()];
@@ -93,19 +80,18 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         local_vertex2s[i] = local_min_edges[i].vertex2->id;
     }
 
-    // prepate for gathering
     int local_count = local_min_edges.size();
-    int* counts = nullptr; // counts of elements sent by each process
-    int* displacements = nullptr; // displacements where each segment begins
-
+    int* counts = nullptr; // holds the length of local_min_edges for each process
+    int* displacements = nullptr; // holds the starting index for where to copy each of the edges arrays 
     if (world_rank==0) {
         counts = new int[world_size];
         displacements = new int[world_size];
     }
 
-    // gather the size of array being sent to process 0
+    // store the respective sizes of the arrays being sent to process 0 from process i 
     MPI_Gather(&local_count, 1, MPI_INT, counts, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+    // calc the displacements in the global array based on the counts 
     if (world_rank==0) {
         displacements[0] = 0;
         for (int i=1;i<world_size;i++) {
@@ -113,6 +99,7 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         }
     }
 
+    // sum the counts to get the size of the global edge array
     int total_count;
     if (world_rank==0) {
         total_count = std::accumulate(counts, counts+world_size, 0);
@@ -120,6 +107,7 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         total_count = 0;
     }
 
+    // define arrays to receive the properties of the local process edges
     int* all_weights;
     int* all_vertex1s;
     int* all_vertex2s;
@@ -133,6 +121,7 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         all_vertex2s = nullptr;    
     }
 
+    // gather the properties of the local edges to each process i in process 0
     MPI_Gatherv(local_weights, local_count, MPI_INT,
                 all_weights, counts, displacements, MPI_INT,
                 0, MPI_COMM_WORLD);
@@ -143,143 +132,80 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
                 all_vertex2s, counts, displacements, MPI_INT,
                 0, MPI_COMM_WORLD);
 
-
+    // construct edges from the properties received in the gather step
     if (world_rank==0) {
         for (int i=0;i<total_count;i++) {
             Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
             Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
             Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
-            global_min_edges.push_back(*edge);
+            global_min_edges->push_back(*edge);
         }
     }
 
-    sort(global_min_edges.begin(), global_min_edges.end());
-
+    // clean up allocated memory
     if (world_rank == 0) {
         delete[] counts;
         delete[] displacements;
-        delete[] all_weights; // When done processing
+        delete[] all_weights;
         delete[] all_vertex1s;
         delete[] all_vertex2s;
     }
+}
+
+
+/**
+ * 
+*/
+vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
+    clock_t start;
+    if (world_rank==0) {
+        start = clock();
+    }
+    
+    DisjointSet ds(inputGraph.V); // initially stores one set for each vertex, merged later through merge operations
+    vector<Edge> mst; 
+    vector<Edge> local_min_edges;
+    vector<Edge> global_min_edges;
+    bool edges_remaining = true;
+    
+    // define the ranges within the ds allocated to the respective processes
+    vector<vector<int>> ds_range = getProcessRanges(ds, world_size);
+
+    // construct a vector of min leaving edges for each process
+    selectMinEdges(&local_min_edges, ds_range, inputGraph, ds, world_rank);
+
+    // gather all local_min_edges from process i to process 0
+    gatherEdges(&global_min_edges, local_min_edges, inputGraph, world_rank, world_size);
+
+    // sort the edges by weight min to max
+    sort(global_min_edges.begin(), global_min_edges.end());
+
     local_min_edges.clear();
-    // in process 0 we will have to match the id to the vertex
-    // when rebuilding the Edge object, 
 
-
-
-    // // sort the min_edges vector which now has a min_edge for every subgraph in the subgraph_set
-    // sort(min_edges.begin(), min_edges.end());
-
-
-    // loop while there are still edges in the min_edges vector
+    // loop while there are still edges in the global_min_edges vector
     while(edges_remaining){
+        // add edges to the MST and merge their vertex sets in the disjoint set
         if (world_rank==0) {
             for (int i=0; i<global_min_edges.size();i++) {
-                if(ds.find(global_min_edges[i].vertex1->id) != ds.find(global_min_edges[i].vertex2->id)) {
+                if(ds.find(global_min_edges[i].vertex1->id) != ds.find(global_min_edges[i].vertex2->id)) { // if the edge is out-going
                     ds.merge(global_min_edges[i].vertex1->id, global_min_edges[i].vertex2->id);
                     mst.push_back(global_min_edges[i]);
                 }
             }
-            // clear the min_edges
+            // clear vector since all edges were checked
             global_min_edges.clear();
         }
-        // NEED TO SEND THE UPDATED MAIN DS TO THE REST OF THE PROCESSES
+
+        // send the updated disjoint set to all processes from the root process as it is the only process with the true set
         MPI_Bcast(&ds.parent[0], ds.size, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Barrier(MPI_COMM_WORLD);
-        
-        // in parallel loop over portion that was allocated
-        for(int i=ds_range[world_rank][0]; i<ds_range[world_rank][1];i++) {
-            if(ds.find(i)!=i) {
-                continue;
-            }
-            vector<int> connected_vertices = ds.getConnectedIds(i);
-            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
-            if (min_leaving_edge==nullptr){
-                continue;
-            }
-            local_min_edges.push_back(*min_leaving_edge);
-        }
-        // at this point we should have an array of min outgoing edges from each of the 
-        // subgraphs in the partition of ds for this process
 
-        // build three arrays which can be sent over MPI 
-        int local_weights[local_min_edges.size()];
-        int local_vertex1s[local_min_edges.size()];
-        int local_vertex2s[local_min_edges.size()];
-        for (int i=0;i<local_min_edges.size();i++) {
-            local_weights[i] = local_min_edges[i].weight;
-            local_vertex1s[i] = local_min_edges[i].vertex1->id;
-            local_vertex2s[i] = local_min_edges[i].vertex2->id;
-        }
+        // construct a vector of min leaving edges for each process
+        selectMinEdges(&local_min_edges, ds_range, inputGraph, ds, world_rank);
 
-        // prepare for gathering
-        int local_count = local_min_edges.size();
-        int* counts = nullptr; // counts of elements sent by each process
-        int* displacements = nullptr; // displacements where each segment begins
+        // gather all local_min_edges from process i to process 0
+        gatherEdges(&global_min_edges, local_min_edges, inputGraph, world_rank, world_size);
 
-        if (world_rank==0) {
-            counts = new int[world_size];
-            displacements = new int[world_size];
-        }
-
-        // gather the size of array being sent to process 0
-        MPI_Gather(&local_count, 1, MPI_INT, counts, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        if (world_rank==0) {
-            displacements[0] = 0;
-            for (int i=1;i<world_size;i++) {
-                displacements[i] = displacements[i-1] + counts[i-1];
-            }
-        }
-
-        int total_count;
-        if (world_rank==0) {
-            total_count = std::accumulate(counts, counts+world_size, 0);
-        } else {
-            total_count = 0;
-        }
-
-        int* all_weights;
-        int* all_vertex1s;
-        int* all_vertex2s;
-        if (world_rank==0) {
-            all_weights = new int[total_count];
-            all_vertex1s = new int[total_count];
-            all_vertex2s = new int[total_count];
-        } else {
-            all_weights = nullptr;
-            all_vertex1s = nullptr;
-            all_vertex2s = nullptr;    
-        }
-
-        MPI_Gatherv(local_weights, local_count, MPI_INT,
-                    all_weights, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-        MPI_Gatherv(local_vertex1s, local_count, MPI_INT,
-                    all_vertex1s, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-        MPI_Gatherv(local_vertex2s, local_count, MPI_INT,
-                    all_vertex2s, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-
-
-        if (world_rank==0) {
-            for (int i=0;i<total_count;i++) {
-                Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
-                Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
-                Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
-                global_min_edges.push_back(*edge);
-            }
-        }
-
-        if (world_rank == 0) {
-            delete[] counts;
-            delete[] displacements;
-            delete[] all_weights; // When done processing
-            delete[] all_vertex1s;
-            delete[] all_vertex2s;
-        }
         local_min_edges.clear();
 
 
@@ -287,12 +213,19 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         if (global_min_edges.empty() && world_rank==0) {
             edges_remaining = false;
         }
-
+        // let the other processes know if edges are still remaining.
         MPI_Bcast(&edges_remaining, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         if (edges_remaining) {
             sort(global_min_edges.begin(), global_min_edges.end());
         }
+    }
+
+    if (world_rank==0) {
+        clock_t end = clock();
+        // convert to milliseconds
+        double elapsed = double(end - start) / CLOCKS_PER_SEC * 1000; 
+        cout << "Elapsed time: " << elapsed << " ms"<<endl;
     }
 
     return mst;
