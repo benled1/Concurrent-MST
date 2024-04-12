@@ -41,6 +41,7 @@ Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
 
 // below is the serial version of the distributed program (does everything on process 0)
 vector<Edge> serialPrims(Graph& inputGraph) {
+    clock_t start = clock();
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
@@ -86,6 +87,11 @@ vector<Edge> serialPrims(Graph& inputGraph) {
 
         sort(min_edges.begin(), min_edges.end());
     }
+
+    clock_t end = clock();
+    // convert to milliseconds
+    double elapsed = double(end - start) / CLOCKS_PER_SEC * 1000; 
+    cout << "Elapsed time: " << elapsed << " ms"<<endl;
 
     return mst;
 }

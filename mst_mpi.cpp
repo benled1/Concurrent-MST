@@ -6,12 +6,14 @@
 #include <numeric>
 #include <limits>
 #include </usr/include/mpi/mpi.h>
+#include <ctime>
 
 using namespace std;
 
-
+/**
+ * Finds the miniumum weighted edge leaving the set of connected vertices the root vertex belongs to.
+*/
 Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
-    
     Edge* minEdge = nullptr;
     int minWeight = numeric_limits<int>::max();
     vector<int> connected_vertices = ds.getConnectedIds(root_id);
@@ -32,6 +34,9 @@ Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
     return minEdge;
 }
 
+/**
+ * Constructs a vector of start,end indices for each process to operate on in the disjoint set.
+*/
 vector<vector<int>> getProcessRanges(DisjointSet& ds, int world_size) {
     // get portion of the ds that this process is responsible for
     vector<vector<int>> ds_range;
@@ -51,6 +56,11 @@ vector<vector<int>> getProcessRanges(DisjointSet& ds, int world_size) {
 
 // below is the distributed version of prims 
 vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
+    clock_t start;
+    if (world_rank==0) {
+        start = clock();
+    }
+    
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
@@ -183,7 +193,6 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
             if(ds.find(i)!=i) {
                 continue;
             }
-            // vector<int> connected_vertices = ds.getConnectedIds(i);
             Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
             if (min_leaving_edge==nullptr){
                 continue;
@@ -283,6 +292,13 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         if (edges_remaining) {
             sort(global_min_edges.begin(), global_min_edges.end());
         }
+    }
+    
+    if (world_rank==0) {
+        clock_t end = clock();
+        // convert to milliseconds
+        double elapsed = double(end - start) / CLOCKS_PER_SEC * 1000; 
+        cout << "Elapsed time: " << elapsed << " ms"<<endl;
     }
 
     return mst;
