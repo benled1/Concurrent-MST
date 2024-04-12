@@ -16,16 +16,16 @@ bool isLeavingEdge(Edge& edge, vector<int> connected_vertices) {
 }
 
 
-Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
-
+Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
+    
     Edge* minEdge = nullptr;
     int minWeight = numeric_limits<int>::max();
-
+    vector<int> connected_vertices = ds.getConnectedIds(root_id);
     for(int vertexId: connected_vertices){
         Vertex* currVertex = graph.vertices[vertexId];
         for(Edge* edge: currVertex->edges) {
             // check if the edge is leaving the connected set
-            if (isLeavingEdge(*edge, connected_vertices)) {
+            if (ds.find(edge->vertex1->id) != ds.find(edge->vertex2->id)) {
                 if (edge->weight < minWeight) {
                     minWeight = edge->weight;
                     minEdge = edge;
@@ -50,8 +50,7 @@ vector<Edge> serialPrims(Graph& inputGraph) {
         if(ds.find(i)!=i) {
             continue;
         }
-        vector<int> connected_vertices = ds.getConnectedIds(i);
-        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
         if (min_leaving_edge==nullptr){
             continue;
         }
@@ -78,8 +77,7 @@ vector<Edge> serialPrims(Graph& inputGraph) {
             if(ds.find(i)!=i) {
                 continue;
             }
-            vector<int> connected_vertices = ds.getConnectedIds(i);
-            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
             if (min_leaving_edge==nullptr){
                 continue;
             }

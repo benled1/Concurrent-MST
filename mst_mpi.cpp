@@ -10,26 +10,16 @@
 using namespace std;
 
 
-
-bool isLeavingEdge(Edge& edge, vector<int> connected_vertices) {
-    if (find(connected_vertices.begin(), connected_vertices.end(), edge.vertex1->id) == connected_vertices.end() ||
-        find(connected_vertices.begin(), connected_vertices.end(), edge.vertex2->id) == connected_vertices.end()) {
-        return true;
-    }
-    return false;
-}
-
-
-Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
-
+Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
+    
     Edge* minEdge = nullptr;
     int minWeight = numeric_limits<int>::max();
-
+    vector<int> connected_vertices = ds.getConnectedIds(root_id);
     for(int vertexId: connected_vertices){
         Vertex* currVertex = graph.vertices[vertexId];
         for(Edge* edge: currVertex->edges) {
             // check if the edge is leaving the connected set
-            if (isLeavingEdge(*edge, connected_vertices)) {
+            if (ds.find(edge->vertex1->id) != ds.find(edge->vertex2->id)) {
                 if (edge->weight < minWeight) {
                     minWeight = edge->weight;
                     minEdge = edge;
@@ -42,19 +32,7 @@ Edge* findMinOutGoingEdge(Graph& graph, vector<int> connected_vertices) {
     return minEdge;
 }
 
-
-
-
-// below is the distributed version of prims 
-vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
-    // init the disjoint set, final mst, and min_edges
-    DisjointSet ds(inputGraph.V);
-    vector<Edge> mst;
-    vector<Edge> local_min_edges;
-    vector<Edge> global_min_edges;
-    bool edges_remaining = true;
-    
-    
+vector<vector<int>> getProcessRanges(DisjointSet& ds, int world_size) {
     // get portion of the ds that this process is responsible for
     vector<vector<int>> ds_range;
     int min_vertices_per_process = ds.size / world_size;
@@ -67,21 +45,33 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         ds_range.push_back({start_idx, end_idx});
         start_idx = end_idx;
     }
+    return ds_range;
+}
+
+
+// below is the distributed version of prims 
+vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
+    // init the disjoint set, final mst, and min_edges
+    DisjointSet ds(inputGraph.V);
+    vector<Edge> mst;
+    vector<Edge> local_min_edges;
+    vector<Edge> global_min_edges;
+    bool edges_remaining = true;
+    
+    
+    vector<vector<int>> ds_range = getProcessRanges(ds, world_size);
 
     // in parallel loop over portion that was allocated
     for(int i=ds_range[world_rank][0]; i<ds_range[world_rank][1];i++) {
         if(ds.find(i)!=i) {
             continue;
         }
-        vector<int> connected_vertices = ds.getConnectedIds(i);
-        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+        Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
         if (min_leaving_edge==nullptr){
             continue;
         }
         local_min_edges.push_back(*min_leaving_edge);
     }
-    // at this point we should have an array of min outgoing edges from each of the 
-    // subgraphs in the partition of ds for this process
 
     // build three arrays which can be sent over MPI 
     int local_weights[local_min_edges.size()];
@@ -193,8 +183,8 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
             if(ds.find(i)!=i) {
                 continue;
             }
-            vector<int> connected_vertices = ds.getConnectedIds(i);
-            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, connected_vertices);
+            // vector<int> connected_vertices = ds.getConnectedIds(i);
+            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
             if (min_leaving_edge==nullptr){
                 continue;
             }
