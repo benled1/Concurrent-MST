@@ -67,26 +67,7 @@ void selectMinEdges(vector<Edge>* local_min_edges, vector<vector<int>>& ds_range
     }
 }
 
-
-// below is the distributed version of prims 
-vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
-    clock_t start;
-    if (world_rank==0) {
-        start = clock();
-    }
-    
-    // init the disjoint set, final mst, and min_edges
-    DisjointSet ds(inputGraph.V);
-    vector<Edge> mst;
-    vector<Edge> local_min_edges;
-    vector<Edge> global_min_edges;
-    bool edges_remaining = true;
-    
-    // define the ranges within the ds allocated to the respective processes
-    vector<vector<int>> ds_range = getProcessRanges(ds, world_size);
-
-    // construct a vector of min leaving edges for each process
-    selectMinEdges(&local_min_edges, ds_range, inputGraph, ds, world_rank);
+void gatherEdges(vector<Edge>* global_min_edges, vector<Edge>& local_min_edges, Graph& inputGraph, int world_rank, int world_size) {
 
     // serialize the edge data into arrays to send over MPI
     int local_weights[local_min_edges.size()];
@@ -98,10 +79,10 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         local_vertex2s[i] = local_min_edges[i].vertex2->id;
     }
 
-    // prepate for gathering
+    // prepare for gathering
     int local_count = local_min_edges.size();
-    int* counts = nullptr; // counts of elements sent by each process
-    int* displacements = nullptr; // displacements where each segment begins
+    int* counts = nullptr;
+    int* displacements = nullptr;
 
     if (world_rank==0) {
         counts = new int[world_size];
@@ -154,19 +135,44 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
             Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
             Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
             Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
-            global_min_edges.push_back(*edge);
+            global_min_edges->push_back(*edge);
         }
     }
-
-    sort(global_min_edges.begin(), global_min_edges.end());
 
     if (world_rank == 0) {
         delete[] counts;
         delete[] displacements;
-        delete[] all_weights; // When done processing
+        delete[] all_weights;
         delete[] all_vertex1s;
         delete[] all_vertex2s;
     }
+}
+
+
+// below is the distributed version of prims 
+vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
+    clock_t start;
+    if (world_rank==0) {
+        start = clock();
+    }
+    
+    // init the disjoint set, final mst, and min_edges
+    DisjointSet ds(inputGraph.V);
+    vector<Edge> mst;
+    vector<Edge> local_min_edges;
+    vector<Edge> global_min_edges;
+    bool edges_remaining = true;
+    
+    // define the ranges within the ds allocated to the respective processes
+    vector<vector<int>> ds_range = getProcessRanges(ds, world_size);
+
+    // construct a vector of min leaving edges for each process
+    selectMinEdges(&local_min_edges, ds_range, inputGraph, ds, world_rank);
+
+    gatherEdges(&global_min_edges, local_min_edges, inputGraph, world_rank, world_size);
+
+    sort(global_min_edges.begin(), global_min_edges.end());
+
     local_min_edges.clear();
 
     // loop while there are still edges in the min_edges vector
@@ -188,83 +194,8 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
         // construct a vector of min leaving edges for each process
         selectMinEdges(&local_min_edges, ds_range, inputGraph, ds, world_rank);
 
-        // build three arrays which can be sent over MPI 
-        int local_weights[local_min_edges.size()];
-        int local_vertex1s[local_min_edges.size()];
-        int local_vertex2s[local_min_edges.size()];
-        for (int i=0;i<local_min_edges.size();i++) {
-            local_weights[i] = local_min_edges[i].weight;
-            local_vertex1s[i] = local_min_edges[i].vertex1->id;
-            local_vertex2s[i] = local_min_edges[i].vertex2->id;
-        }
+        gatherEdges(&global_min_edges, local_min_edges, inputGraph, world_rank, world_size);
 
-        // prepare for gathering
-        int local_count = local_min_edges.size();
-        int* counts = nullptr; // counts of elements sent by each process
-        int* displacements = nullptr; // displacements where each segment begins
-
-        if (world_rank==0) {
-            counts = new int[world_size];
-            displacements = new int[world_size];
-        }
-
-        // gather the size of array being sent to process 0
-        MPI_Gather(&local_count, 1, MPI_INT, counts, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        if (world_rank==0) {
-            displacements[0] = 0;
-            for (int i=1;i<world_size;i++) {
-                displacements[i] = displacements[i-1] + counts[i-1];
-            }
-        }
-
-        int total_count;
-        if (world_rank==0) {
-            total_count = std::accumulate(counts, counts+world_size, 0);
-        } else {
-            total_count = 0;
-        }
-
-        int* all_weights;
-        int* all_vertex1s;
-        int* all_vertex2s;
-        if (world_rank==0) {
-            all_weights = new int[total_count];
-            all_vertex1s = new int[total_count];
-            all_vertex2s = new int[total_count];
-        } else {
-            all_weights = nullptr;
-            all_vertex1s = nullptr;
-            all_vertex2s = nullptr;    
-        }
-
-        MPI_Gatherv(local_weights, local_count, MPI_INT,
-                    all_weights, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-        MPI_Gatherv(local_vertex1s, local_count, MPI_INT,
-                    all_vertex1s, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-        MPI_Gatherv(local_vertex2s, local_count, MPI_INT,
-                    all_vertex2s, counts, displacements, MPI_INT,
-                    0, MPI_COMM_WORLD);
-
-
-        if (world_rank==0) {
-            for (int i=0;i<total_count;i++) {
-                Vertex* vertex1 = inputGraph.vertices[all_vertex1s[i]];
-                Vertex* vertex2 = inputGraph.vertices[all_vertex2s[i]];
-                Edge* edge = new Edge(vertex1, vertex2, all_weights[i]);
-                global_min_edges.push_back(*edge);
-            }
-        }
-
-        if (world_rank == 0) {
-            delete[] counts;
-            delete[] displacements;
-            delete[] all_weights; // When done processing
-            delete[] all_vertex1s;
-            delete[] all_vertex2s;
-        }
         local_min_edges.clear();
 
 
