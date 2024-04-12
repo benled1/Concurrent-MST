@@ -10,19 +10,11 @@
 #include <iterator>
 #include <cstdlib>
 #include <ctime>
+#include <stdexcept>
 
 using namespace std;
 
-class Vertex;
-
-class Edge {
-public:
-    Vertex* vertex1;
-    Vertex* vertex2;
-    int weight;
-    
-    Edge(Vertex* v1, Vertex* v2, int w) : vertex1(v1), vertex2(v2), weight(w) {}
-};
+class Edge;
 
 class Vertex {
 public:
@@ -33,6 +25,36 @@ public:
     
     void addEdge(Edge* edge) {
         edges.push_back(edge);
+    }
+    
+};
+
+class Edge {
+public:
+    Vertex* vertex1;
+    Vertex* vertex2;
+    int weight;
+    
+    Edge(Vertex* v1, Vertex* v2, int w) : vertex1(v1), vertex2(v2), weight(w) {}
+    bool operator<(const Edge& other) const {
+        // Compare edges based on their weights
+        return weight < other.weight;
+    }
+
+    bool operator==(const Edge& other) const {
+        // Compare edges based on their weights
+        return ((vertex1->id == other.vertex1->id && vertex2->id == other.vertex2->id)
+                || (vertex1->id == other.vertex2->id && vertex2->id == other.vertex1->id));
+    }
+};
+
+// For checking if an edge is a duplicate
+struct EdgeHasher {
+    std::size_t operator()(const Edge& edge) const noexcept {
+        int low = std::min(edge.vertex1->id, edge.vertex2->id);
+        int high = std::max(edge.vertex1->id, edge.vertex2->id);
+        // Create a hash for the mix of low high. Unordered so each edge exists once
+        return std::hash<int>()(low) ^ std::hash<int>()(high);
     }
 };
 
@@ -110,15 +132,27 @@ public:
         int color = 0;
         Vertex* random_item;
         if(vertices.empty()){
+            throw std::invalid_argument( "Empty graph" );
             return nullptr;
         }
-        while(color != -1){
-            int randomIndex = std::rand() % vertices.size();
-            auto it = std::begin(vertices);
-            std::advance(it, randomIndex);
-            random_item = it->second;
-            color = random_item->color;
+        // if no more empty then return null
+        std::vector<Vertex*> vertexVector;
+        for (const auto& pair : vertices) {
+            if(pair.second->color == -1){
+                vertexVector.push_back(pair.second);
+            }
         }
+        if(vertexVector.size() == 0){
+            cout << "No more unvisited vertices" << endl;
+            return nullptr;
+        }
+        int randomIndex = std::rand() % vertexVector.size();
+        while(color != -1){
+            Vertex* randomVertex = vertexVector[randomIndex];
+            color = randomVertex->color;
+            randomIndex = std::rand() % vertexVector.size();
+        }
+        random_item = vertices[randomIndex];
         return random_item;
     }
 };
