@@ -7,14 +7,6 @@
 
 using namespace std;
 
-bool isLeavingEdge(Edge& edge, vector<int> connected_vertices) {
-    if (find(connected_vertices.begin(), connected_vertices.end(), edge.vertex1->id) == connected_vertices.end() ||
-        find(connected_vertices.begin(), connected_vertices.end(), edge.vertex2->id) == connected_vertices.end()) {
-        return true;
-    }
-    return false;
-}
-
 
 Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
     
