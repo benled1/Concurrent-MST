@@ -1,23 +1,24 @@
 #include "utils/graph.h"
 #include "utils/disjoint_set.h"
-#include <cassert> // For assert()
+#include <cassert>
 #include <algorithm>
 #include <string>
 #include <limits>
 
 using namespace std;
 
-
+/**
+ * Finds the miniumum weighted edge leaving the set of connected vertices the root vertex belongs to.
+*/
 Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
     
     Edge* minEdge = nullptr;
     int minWeight = numeric_limits<int>::max();
-    vector<int> connected_vertices = ds.getConnectedIds(root_id);
+    vector<int> connected_vertices = ds.getConnectedIds(root_id); // get vector of vertex id's connected to root
     for(int vertexId: connected_vertices){
         Vertex* currVertex = graph.vertices[vertexId];
         for(Edge* edge: currVertex->edges) {
-            // check if the edge is leaving the connected set
-            if (ds.find(edge->vertex1->id) != ds.find(edge->vertex2->id)) {
+            if (ds.find(edge->vertex1->id) != ds.find(edge->vertex2->id)) { // if the edge is leaving the connected set
                 if (edge->weight < minWeight) {
                     minWeight = edge->weight;
                     minEdge = edge;
@@ -30,15 +31,10 @@ Edge* findMinOutGoingEdge(Graph& graph, int root_id, DisjointSet& ds) {
     return minEdge;
 }
 
-
-// below is the serial version of the distributed program (does everything on process 0)
-vector<Edge> serialPrims(Graph& inputGraph) {
-    clock_t start = clock();
-    // init the disjoint set, final mst, and min_edges
-    DisjointSet ds(inputGraph.V);
-    vector<Edge> mst;
-    vector<Edge> min_edges;
-
+/**
+ * Iterate over the disjoint set and select the min weighted outgoing edge from each connected set.
+*/
+void selectMinEdges(vector<Edge>* min_edges, Graph& inputGraph, DisjointSet& ds) {
     for(int i=0; i<ds.size;i++) {
         if(ds.find(i)!=i) {
             continue;
@@ -47,36 +43,36 @@ vector<Edge> serialPrims(Graph& inputGraph) {
         if (min_leaving_edge==nullptr){
             continue;
         }
-        min_edges.push_back(*min_leaving_edge);
+        min_edges->push_back(*min_leaving_edge);
     }
+}
+
+vector<Edge> serialPrims(Graph& inputGraph) {
+    clock_t start = clock();
+    // init the disjoint set, final mst, and min_edges
+    DisjointSet ds(inputGraph.V);
+    vector<Edge> mst;
+    vector<Edge> min_edges;
+
+    // find set of min outgoing edges
+    selectMinEdges(&min_edges, inputGraph, ds);
 
     // sort the min_edges vector which now has a min_edge for every subgraph in the subgraph_set
     sort(min_edges.begin(), min_edges.end());
 
-
     // loop while there are still edges in the min_edges vector
     while(!min_edges.empty()){
+        // add edges to the MST and merge their respective vertex sets in the disjoint set.
         for (int i=0; i<min_edges.size();i++) {
             if(ds.find(min_edges[i].vertex1->id) != ds.find(min_edges[i].vertex2->id)) {
                 ds.merge(min_edges[i].vertex1->id, min_edges[i].vertex2->id);
                 mst.push_back(min_edges[i]);
             }
         }
-        
-        // clear the min_edges
         min_edges.clear();
 
-        for(int i=0; i<ds.size;i++) {
-            if(ds.find(i)!=i) {
-                continue;
-            }
-            Edge* min_leaving_edge = findMinOutGoingEdge(inputGraph, i, ds);
-            if (min_leaving_edge==nullptr){
-                continue;
-            }
-            min_edges.push_back(*min_leaving_edge);
-        }
-
+        // find new set of min outgoing edges
+        selectMinEdges(&min_edges, inputGraph, ds);
         sort(min_edges.begin(), min_edges.end());
     }
 
@@ -101,9 +97,7 @@ int main(int argc, char *argv[]){
     }
 
     Graph g;
-
     g.readCSV(graphFilePath);
-
     vector<Edge> mst = serialPrims(g);
 
     cout<<"MST:"<<endl;
