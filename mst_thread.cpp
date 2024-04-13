@@ -47,6 +47,7 @@ void selectMinEdgesThread(vector<Edge>* min_edges, Graph& inputGraph, DisjointSe
             }
         }
     }
+    // lock the mutex when adding edges to the global vector of edges
     lock_guard<mutex> lock(minEdgesMutex);
     min_edges->insert(min_edges->end(), localMinEdges.begin(), localMinEdges.end());
 }
@@ -62,7 +63,6 @@ vector<Edge> parallelPrims(Graph& inputGraph, int numThreads) {
     int min_vertices_per_thread = ds.size / numThreads;
     int remaining_vertices = ds.size % numThreads;
     int startIdx = 0;
-
 
     // distribute sections of the ds to different threads
     for (int i = 0; i < numThreads; i++) {
@@ -86,7 +86,7 @@ vector<Edge> parallelPrims(Graph& inputGraph, int numThreads) {
 
     // loop while min_edges is empty
     while (!min_edges.empty()) {
-     
+        // loop over the min edges found and merge them in the disjoint set. then push these edges to final mst
         for (Edge& edge : min_edges) {
             if (ds.find(edge.vertex1->id) != ds.find(edge.vertex2->id)) {
                 ds.merge(edge.vertex1->id, edge.vertex2->id);
@@ -95,11 +95,11 @@ vector<Edge> parallelPrims(Graph& inputGraph, int numThreads) {
         }
         min_edges.clear();
 
-        // Find new set of min outgoing edges
+        // find new set of min outgoing edges
         for (int i=0; i<numThreads;i++) {
             threads.emplace_back(selectMinEdgesThread, &min_edges, ref(inputGraph), ref(ds), thread_ranges[i][0], thread_ranges[i][1]);
         }
-        for (auto& th : threads) th.join();
+        for (thread& th : threads) th.join();
         threads.clear();
 
         sort(min_edges.begin(), min_edges.end());
