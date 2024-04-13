@@ -1,6 +1,6 @@
 CC = g++
+CFLAGS = -std=c++14 -O3 -pthread
 MPICXX = mpic++
-CFLAGS = -std=c++11 -Wall
 INCLUDES = -I./utils
 
 all: mst_mpi mst_thread mst_serial
@@ -13,8 +13,6 @@ mst_serial: mst_serial.cpp
 
 mst_thread: mst_thread.cpp 
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
-
-
 
 clean:
 	rm -f mst_mpi mst_thread mst_serial

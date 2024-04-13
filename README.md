@@ -39,7 +39,83 @@ SerialPrims(Graph inputGraph) {
 }
 ```
 
+### Threaded
 
+```
+threaded
+for each node
+	color = -1
+	
+create an array of locks for each node
+	
+create threads
+
+in parallel:
+	create a priority queue
+	lock graph;
+	start_vertex = random uncoloured node from the graph
+	unlock graph;
+	
+	for each edge connected to start_vertex
+		add edge e to priority queue 
+	
+	create an array to hold MST edges
+	
+	while priority queue not empty
+		currentEdge = pq.pop()
+		if (edge.first_node.color != -1)
+			targetNode = first_node
+		else
+			targetNode = second_node
+		
+		lock MST_lock_array[targetNode.index]
+		
+		if(targetNode.color == -1)
+			block all threads
+			
+			targetNode.color = threadID
+			
+			add edge to MST
+			
+			for each edge connected to targetNode
+				if(edge has atleast 1 node not visited)
+					add edge e to priority queue 
+			unlock MST_lock_array[targetNode.index]
+			unblock all threads
+		
+		else if (targetNode.color != threadID)
+			
+			visitedThread = targetNode.color
+			
+			if(visitedThread < threadID)
+				lock threadID and visitedThread
+				
+				mergeTree(visitedThread, threadID)
+				
+				unlock MST_lock_array[targetNode.index]
+				unlock threadID and visitedThread
+			
+			else if(threadID < visitedThread)	
+				lock threadID and visitedThread
+				
+				mergeTree(threadID, visitedThread)
+				
+				unlock MST_lock_array[targetNode.index]
+				unlock threadID and visitedThread
+		
+		else if(targetNode.color == threadID)
+			unlock MST_lock_array[targetNode.index]
+			
+			
+			
+function mergeTree(t1, t2)
+	merge t2's edge list into t1
+	update the size and weight of the new MST
+	color all vertices in the MST with t1's id
+	update the priority queue for i
+	remove all edges from t2's list
+
+```
 
 
 

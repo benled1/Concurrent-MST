@@ -7,10 +7,30 @@
 #include <sstream>
 #include <unordered_set>
 #include <queue>
+#include <iterator>
+#include <cstdlib>
+#include <ctime>
+#include <stdexcept>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 using namespace std;
 
-class Vertex;
+class Edge;
+
+class Vertex {
+public:
+    int id;
+    std::vector<Edge*> edges;
+    int color = -1;
+    Vertex(int id) : id(id) {}
+    
+    void addEdge(Edge* edge) {
+        edges.push_back(edge);
+    }
+    
+};
 
 class Edge {
 public:
@@ -19,21 +39,25 @@ public:
     int weight;
     
     Edge(Vertex* v1, Vertex* v2, int w) : vertex1(v1), vertex2(v2), weight(w) {}
-
     bool operator<(const Edge& other) const {
-        return this->weight < other.weight;
+        // Compare edges based on their weights
+        return weight < other.weight;
+    }
+
+    bool operator==(const Edge& other) const {
+        // Compare edges based on their weights
+        return ((vertex1->id == other.vertex1->id && vertex2->id == other.vertex2->id)
+                || (vertex1->id == other.vertex2->id && vertex2->id == other.vertex1->id));
     }
 };
 
-class Vertex {
-public:
-    int id;
-    std::vector<Edge*> edges;
-    
-    Vertex(int id) : id(id) {}
-    
-    void addEdge(Edge* edge) {
-        edges.push_back(edge);
+// For checking if an edge is a duplicate
+struct EdgeHasher {
+    std::size_t operator()(const Edge& edge) const noexcept {
+        int low = std::min(edge.vertex1->id, edge.vertex2->id);
+        int high = std::max(edge.vertex1->id, edge.vertex2->id);
+        // Create a hash for the mix of low high. Unordered so each edge exists once
+        return std::hash<int>()(low) ^ std::hash<int>()(high);
     }
 };
 
@@ -42,7 +66,11 @@ class Graph {
 public:
     std::unordered_map<int, Vertex*> vertices;
     int V;
-    
+
+    Graph(){
+        std::srand(std::time(nullptr));
+    }
+
     void addEdge(int vertexId1, int vertexId2, int weight) {
         Vertex* v1 = getOrCreateVertex(vertexId1);
         Vertex* v2 = getOrCreateVertex(vertexId2);
@@ -102,4 +130,63 @@ public:
         // If number of visited vertices equals total number of vertices, the graph is connected
         return visited.size() == vertices.size();
     }
+
+    Vertex* getRandomUnvisitedVertex(int id){
+        int color = 0;
+        Vertex* random_item;
+        if(vertices.empty()){
+            throw std::invalid_argument( "Empty graph" );
+            return nullptr;
+        }
+        // Quickly get all unvisted vertices 
+        std::vector<Vertex*> vertexVector;
+        for (const auto& pair : vertices) {
+            if(pair.second->color == -1){
+                vertexVector.push_back(pair.second);
+            }
+        }
+        // if no more empty then return null
+        if(vertexVector.size() == 0){
+            cout << "No more unvisited vertices" << endl;
+            return nullptr;
+        }
+        int randomIndex = std::rand() % vertexVector.size();
+        while(color != -1){
+            Vertex* randomVertex = vertexVector[randomIndex];
+            color = randomVertex->color;
+            randomIndex = std::rand() % vertexVector.size();
+        }
+        random_item = vertices[randomIndex];
+        random_item->color = id;
+        return random_item;
+    }
+};
+
+
+struct CustomBarrier {
+  int num_of_threads_;
+  int current_waiting_;
+  int barrier_call_;
+  std::mutex my_mutex_;
+  std::condition_variable my_cv_;
+
+  CustomBarrier(int t_num_of_threads)
+      : num_of_threads_(t_num_of_threads), current_waiting_(0),
+        barrier_call_(0) {}
+
+  void wait() {
+    std::unique_lock<std::mutex> u_lock(my_mutex_);
+    int c = barrier_call_;
+    current_waiting_++;
+    if (current_waiting_ == num_of_threads_) {
+      current_waiting_ = 0;
+      // unlock and send signal to wake up
+      barrier_call_++;
+      u_lock.unlock();
+      my_cv_.notify_all();
+      return;
+    }
+    my_cv_.wait(u_lock, [&] { return (c != barrier_call_); });
+    //  Condition has been reached. return
+  }
 };
