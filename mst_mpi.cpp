@@ -7,6 +7,7 @@
 #include <limits>
 #include </usr/include/mpi/mpi.h>
 #include <ctime>
+#include <chrono>
 
 using namespace std;
 
@@ -157,9 +158,9 @@ void gatherEdges(vector<Edge>* global_min_edges, vector<Edge>& local_min_edges, 
  * 
 */
 vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank) {
-    clock_t start;
+    chrono::time_point<std::chrono::high_resolution_clock> start;
     if (world_rank==0) {
-        start = clock();
+        start = chrono::high_resolution_clock::now();
     }
     
     DisjointSet ds(inputGraph.V); // initially stores one set for each vertex, merged later through merge operations
@@ -222,10 +223,9 @@ vector<Edge> distributedPrims(Graph& inputGraph, int world_size, int world_rank)
     }
 
     if (world_rank==0) {
-        clock_t end = clock();
-        // convert to milliseconds
-        double elapsed = double(end - start) / CLOCKS_PER_SEC * 1000; 
-        cout << "Elapsed time: " << elapsed << " ms"<<endl;
+        auto end = chrono::high_resolution_clock::now();
+        double elapsed = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        cout << "Elapsed time: " << elapsed << " ms" << endl;
     }
 
     return mst;

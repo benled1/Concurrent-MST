@@ -24,6 +24,7 @@ class Graph:
                 writer.writerow(edge)
 
 if __name__ == "__main__":
+    file_name = raw_input("Enter the filename for the graph: ")
     num_vertices = int(input("Enter the number of vertices: "))
     num_edges = int(input("Enter the number of edges (greater than or equal to vertices): "))
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
             weight = random.randint(1, 100)
             graph.add_edge(v1, v2, weight)
 
-        graph.write_to_csv("connected_graph.csv")
+        graph.write_to_csv("inputGraphs/" + file_name + ".csv")
         print("CSV file created successfully.")
 
 # Your isConnected method in C++

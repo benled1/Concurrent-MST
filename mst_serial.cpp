@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string>
 #include <limits>
+#include <chrono>
 
 using namespace std;
 
@@ -48,7 +49,7 @@ void selectMinEdges(vector<Edge>* min_edges, Graph& inputGraph, DisjointSet& ds)
 }
 
 vector<Edge> serialPrims(Graph& inputGraph) {
-    clock_t start = clock();
+    auto start = chrono::high_resolution_clock::now();
     // init the disjoint set, final mst, and min_edges
     DisjointSet ds(inputGraph.V);
     vector<Edge> mst;
@@ -76,10 +77,9 @@ vector<Edge> serialPrims(Graph& inputGraph) {
         sort(min_edges.begin(), min_edges.end());
     }
 
-    clock_t end = clock();
-    // convert to milliseconds
-    double elapsed = double(end - start) / CLOCKS_PER_SEC * 1000; 
-    cout << "Elapsed time: " << elapsed << " ms"<<endl;
+    auto end = chrono::high_resolution_clock::now();
+    double elapsed = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    cout << "Elapsed time: " << elapsed << " ms" << endl;
 
     return mst;
 }
