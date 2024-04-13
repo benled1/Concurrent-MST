@@ -6,4 +6,4 @@
 #SBATCH --partition=slow
 #SBATCH --mem=1G
 
-srun ./mst_mpi /home/bledingh/CMP431-slurm/final_project/CMPT431-Project/inputGraphs/connected_graph.csv true
+srun ./mst_mpi /home/bledingh/CMP431-slurm/final_project/CMPT431-Project/inputGraphs/50k-60k.csv true
