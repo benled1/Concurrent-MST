@@ -45,7 +45,7 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
     {
         priority_queue<Edge> edge_pq;
         graphMutex.lock();
-        Vertex* starting_vertex = g.getRandomUnvisitedVertex();
+        Vertex* starting_vertex = g.getRandomUnvisitedVertex(tid);
         graphMutex.unlock();
         cout << "Thread " << tid << " grabbed " << starting_vertex->id << endl;
         if(starting_vertex == nullptr){
@@ -58,9 +58,9 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
         // Keep going until we have no more to go through
         while(!edge_pq.empty()){
             if(restartVec[tid] == true){
-                // do something now that they have to restart with a new vertex
-                restartVec[tid] == false;
-                break;
+                // Kill the thread 
+                cout << "Thread #" << tid << " has ended" << endl;
+                return;
             }
             Edge current_edge = edge_pq.top();
             edge_pq.pop();
@@ -93,16 +93,16 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
             else if(targetColor != tid){
                 // Visited by another thread
                 int visitedThread = targetColor;
+                // Kill the largest thread
                 if(visitedThread > tid){
                     mergeMutexes[tid].lock();
                     mergeMutexes[visitedThread].lock();
-
                     mergeTree(visitedThread, tid, std::ref(threadMSTVec), std::ref(restartVec));
 
                     mergeMutexes[tid].unlock();
                     mergeMutexes[visitedThread].unlock();
                 }
-                else if (visitedThread > tid){
+                else if (tid > visitedThread){
                     mergeMutexes[visitedThread].lock();
                     mergeMutexes[tid].lock();
                     
@@ -124,7 +124,7 @@ void mstThread(int tid, Graph &g, std::vector<std::vector<Edge>>& threadMSTVec, 
     }
 }
 
-void mstSerial(int nthreads, Graph g){
+vector<Edge> serialPrims(Graph g, int nthreads){
     size_t v = (size_t) g.V;
     std::vector<std::mutex> list1(v);
     vertexMutexes.swap(list1);
@@ -145,15 +145,33 @@ void mstSerial(int nthreads, Graph g){
     for(Edge e : threadMSTVec[0]){
         cout << e.vertex1->id << " --- " << e.vertex2->id << ", weight: " << e.weight << endl;
     }
-    return;
+    vector<Edge> mst;
+    return mst;
 }
 
+
 int main(int argc, char *argv[]){
+     if (argc <= 1) {
+        cout<<"mst_threads requires at least a filepath."<<endl;
+        return 0;
+    }
+    bool testVerificationLogs = false;
+    string graphFilePath = argv[1];
+    if (argc >= 3) {
+        testVerificationLogs = argv[2];
+    }
+
     Graph g;
-    g.readCSV("./inputGraphs/testData.csv");
-    string connectionTest = g.isConnected() ? "Graph is connected" : "Graph is not connected";
-    cout << connectionTest << endl;
+    g.readCSV(graphFilePath);
+    //TODO: Add to args
     int n_threads = 4;
-    mstSerial(n_threads, g);
-    return 0;
+    vector<Edge> mst = serialPrims(g, n_threads);
+
+    cout<<"MST:"<<endl;
+    for(Edge edge: mst) {
+        cout<<edge.vertex1->id<<"-"<<edge.vertex2->id<<": Weight="<<edge.weight<<endl;
+    }
 }
+
+    
+

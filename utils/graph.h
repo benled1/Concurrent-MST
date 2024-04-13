@@ -11,6 +11,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <stdexcept>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 using namespace std;
 
@@ -128,20 +131,21 @@ public:
         return visited.size() == vertices.size();
     }
 
-    Vertex* getRandomUnvisitedVertex(){
+    Vertex* getRandomUnvisitedVertex(int id){
         int color = 0;
         Vertex* random_item;
         if(vertices.empty()){
             throw std::invalid_argument( "Empty graph" );
             return nullptr;
         }
-        // if no more empty then return null
+        // Quickly get all unvisted vertices 
         std::vector<Vertex*> vertexVector;
         for (const auto& pair : vertices) {
             if(pair.second->color == -1){
                 vertexVector.push_back(pair.second);
             }
         }
+        // if no more empty then return null
         if(vertexVector.size() == 0){
             cout << "No more unvisited vertices" << endl;
             return nullptr;
@@ -153,6 +157,36 @@ public:
             randomIndex = std::rand() % vertexVector.size();
         }
         random_item = vertices[randomIndex];
+        random_item->color = id;
         return random_item;
     }
+};
+
+
+struct CustomBarrier {
+  int num_of_threads_;
+  int current_waiting_;
+  int barrier_call_;
+  std::mutex my_mutex_;
+  std::condition_variable my_cv_;
+
+  CustomBarrier(int t_num_of_threads)
+      : num_of_threads_(t_num_of_threads), current_waiting_(0),
+        barrier_call_(0) {}
+
+  void wait() {
+    std::unique_lock<std::mutex> u_lock(my_mutex_);
+    int c = barrier_call_;
+    current_waiting_++;
+    if (current_waiting_ == num_of_threads_) {
+      current_waiting_ = 0;
+      // unlock and send signal to wake up
+      barrier_call_++;
+      u_lock.unlock();
+      my_cv_.notify_all();
+      return;
+    }
+    my_cv_.wait(u_lock, [&] { return (c != barrier_call_); });
+    //  Condition has been reached. return
+  }
 };
