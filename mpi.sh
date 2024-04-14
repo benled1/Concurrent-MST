@@ -5,5 +5,6 @@
 #SBATCH --ntasks=4
 #SBATCH --partition=slow
 #SBATCH --mem=1G
+#SBATCH --output=test_mpi.txt
 
-srun ./mst_mpi /home/bledingh/CMP431-slurm/final_project/CMPT431-Project/inputGraphs/50k-60k.csv true
+srun ./mst_mpi inputGraphs/50k-60k.csv true

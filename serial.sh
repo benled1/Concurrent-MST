@@ -4,5 +4,6 @@
 #SBATCH --time=02:00
 #SBATCH --mem=1G
 #SBATCH --partition=slow
+#SBATCH --output=test_serial.txt
 
-srun ./mst_serial /home/bledingh/CMP431-slurm/final_project/CMPT431-Project/inputGraphs/50k-60k.csv true
+srun ./mst_serial inputGraphs/50k-60k.csv true
