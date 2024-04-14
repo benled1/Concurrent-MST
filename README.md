@@ -44,7 +44,7 @@ sbatch serial.sh
 All of the scripts output to a text file labelled `test_<implementation>.txt` with implemenation being the chosen implementation. 
 ### Evaluation script
 To test and compare all the implementations at once, use the script `evaluate_procs.py`. This will run all three in Slurm and then output the recorded times from the `.txt.` files. If you want to adjust the testing parameters do not change this script, instead change the `.sh` files. <br>
-Run command
+To run the evaluation script
 ```
 python3 evaluate_procs.py
 ```
@@ -88,8 +88,62 @@ SerialPrims(Graph inputGraph) {
 }
 ```
 
+### Thread
+```
+mutex minEdgesMutex;
 
 
+SelectMinEdgesThread(vector<Edge>* min_edges, int start, int end) {
+    vector<Edge> local_min_edges;
+    for(every vertex id) {
+        // add a min weighted leaving edge 
+        local_min_edges.push_back(min_leaving_edge)
+    }
+
+    lock(minEdgesMutex);
+    // add local minimum edges to a global collection
+    min_edges->push(local_min_edges); 
+    unlock(minEdgesMutex);
+}
+
+ParallelPrims(Graph g) {
+
+    DisjointSet ds(num_vertices);
+    vector<Edge> mst;
+    vector<Edge> min_edges;
+    vector<vector<int>> thread_ranges;
+
+    for(each thread) {
+        // add a range of indices into the disjoint set for each thread.
+        thread_ranges.push_back({start,end});
+    }
+
+    for (each range in thread_ranges) {
+        thread.start(SelectMinEdges, g, start, end);
+    }
+
+    sort(min_edges); // sort smallest to largest
+
+    while(min_edges contains edges) {
+
+        for(every edge in min_edges) {
+            if(edge span across two disjoint subsets in ds) {
+                ds.merge(vertex1.id, vertex2.id); // merge the sets spanned by the edge
+                mst.push_back(edge); // add the edge to the mst
+            } 
+        }
+
+        min_edges.clear(); // empty the min_edges vector
+    
+        for (each range in thread_ranges) {
+            thread.start(SelectMinEdges, g, start, end);
+        }
+
+        sort(min_edges); // sort smallest to largest
+    }
+    return mst;
+}
+```
 
 
 ### MPI
