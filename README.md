@@ -23,7 +23,7 @@ To run those files
 ./mst_serial <graph path> <bool for printing logs>
 ```
 ```
-./mst_thread <n tasks> <graph path> <bool for printing logs>>
+./mst_thread <graph path> <n tasks> <bool for printing logs>>
 ```
 ```
 ./mst_mpi <graph path> <bool for printing logs>
